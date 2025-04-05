@@ -36,6 +36,7 @@ yarn-error.*
 *.tsbuildinfo
 
 app-example
+*.json
 .env
 google-creds.json
-*.jsonapp/backend/google-creds.json
+
