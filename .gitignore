@@ -1,5 +1,7 @@
 # Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
-
+*.json
+.env
+app/backend/google-creds.json
 # dependencies
 node_modules/
 
@@ -36,7 +38,5 @@ yarn-error.*
 *.tsbuildinfo
 
 app-example
-*.json
-.env
-./app/backend/google-creds.json
+
 
