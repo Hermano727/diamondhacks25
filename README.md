@@ -1,50 +1,104 @@
-# Welcome to your Expo app 👋
+# Splitr - Receipt Parser App
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Splitr is a mobile application that helps users scan and parse receipts, making it easy to split expenses with friends and family.
 
-## Get started
+## Features
 
-1. Install dependencies
+- Scan receipts using your device's camera
+- Parse receipt data using Google Vision API
+- View receipt history
+- User authentication and profile management
 
-   ```bash
-   npm install
-   ```
+## Tech Stack
 
-2. Start the app
+### Frontend
+- React Native
+- Expo
+- TypeScript
 
-   ```bash
-    npx expo start
-   ```
+### Backend
+- Python
+- FastAPI
+- Google Cloud Vision API
 
-In the output, you'll find options to open the app in a
+## Getting Started
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+### Prerequisites
+- Node.js (v14 or later)
+- npm or yarn
+- Python 3.8 or later
+- Expo CLI
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+### Installation
 
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+1. Clone the repository
+```
+git clone https://github.com/yourusername/splitr.git
+cd splitr
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+2. Install frontend dependencies
+```
+npm install
+```
 
-## Learn more
+3. Install backend dependencies
+```
+cd backend
+pip install -r requirements.txt
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+4. Set up environment variables
+Create a `.env` file in the root directory with the following variables:
+```
+GOOGLE_CLOUD_CREDENTIALS=path/to/your/credentials.json
+```
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+### Running the App
 
-## Join the community
+1. Start the backend server
+```
+cd backend
+uvicorn app:app --reload
+```
 
-Join our community of developers creating universal apps.
+2. Start the frontend
+```
+npx expo start
+```
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+3. Open the app on your device using the Expo Go app
+
+## Project Structure
+
+```
+splitr/
+├── app/                  # Expo Router app directory
+│   ├── (tabs)/           # Tab navigation screens
+│   │   ├── index.tsx     # Home screen
+│   │   ├── receipt-parser.tsx  # Receipt scanning screen
+│   │   ├── history.tsx   # Receipt history screen
+│   │   ├── profile.tsx   # User profile screen
+│   │   └── _layout.tsx   # Tab navigation layout
+│   └── _layout.tsx       # Root layout
+├── assets/               # Images, fonts, etc.
+├── components/           # Reusable UI components
+├── constants/            # App constants
+├── hooks/                # Custom React hooks
+├── utils/                # Utility functions
+├── backend/              # Python backend
+│   ├── app.py            # FastAPI application
+│   └── requirements.txt  # Python dependencies
+└── package.json          # Node.js dependencies
+```
+
+## API Documentation
+
+The FastAPI backend automatically generates interactive API documentation. When the server is running, you can access:
+
+- Swagger UI: http://localhost:8000/docs
+- ReDoc: http://localhost:8000/redoc
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
