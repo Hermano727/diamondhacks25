@@ -1,8 +1,16 @@
 from google.cloud import vision
+from dotenv import load_dotenv
 import os
 
-# Load creds from .env if needed
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "./app/backend/google-creds.json"
+load_dotenv()
+
+creds_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+
+if creds_path is None:
+    raise ValueError("GOOGLE_APPLICATION_CREDENTIALS not found in .env")
+
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = creds_path
+
 
 client = vision.ImageAnnotatorClient()
 

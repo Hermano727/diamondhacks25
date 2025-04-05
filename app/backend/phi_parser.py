@@ -1,10 +1,11 @@
 import requests
 import os
 import json
-from dotenv import load_dotenv
 
+from dotenv import load_dotenv
 load_dotenv()
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+print("🔐 API KEY (preview):", OPENROUTER_API_KEY[:10], "..." if OPENROUTER_API_KEY else "❌ None found")
 
 def parse_with_phi(receipt_text):
     prompt = f"""
@@ -29,7 +30,9 @@ RECEIPT:
             "https://openrouter.ai/api/v1/chat/completions",
             headers={
                 "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
+                "HTTP-Referer": "http://localhost",  # (Optional) for OpenRouter usage policy
+                "X-Title": "ReceiptParserApp"
             },
             json={
                 "model": "mistralai/mistral-7b-instruct:v0.2",
@@ -38,7 +41,19 @@ RECEIPT:
         )
 
         data = response.json()
-        return json.loads(data["choices"][0]["message"]["content"])
+
+        # ✅ Debug raw response if needed
+        # print("📦 Full response:", json.dumps(data, indent=2))
+
+        # Try both formats
+        print("🕵️ RAW OpenRouter Response:", json.dumps(data, indent=2))
+
+        if "choices" in data:
+            return json.loads(data["choices"][0]["message"]["content"])
+        elif "response" in data:
+            return json.loads(data["response"])
+        else:
+            raise ValueError("Unexpected response format")
 
     except Exception as e:
         print("❌ Phi-3 error:", e)
