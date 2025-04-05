@@ -17,7 +17,7 @@ You are a receipt parser. Extract and return this data as JSON:
 
 Return only valid JSON.
 
-Try your best to align items with prices horizontally just in case their are multiple lines for an item name
+If there is a multiple line entry, be careful.
 RECEIPT:
 \"\"\"
 {receipt_text}
@@ -32,7 +32,7 @@ RECEIPT:
                 "Content-Type": "application/json"
             },
             json={
-                "model": "microsoft/phi-3-medium-128k-instruct:free",
+                "model": "mistralai/mistral-7b-instruct:v0.2",
                 "messages": [{"role": "user", "content": prompt}]
             }
         )
