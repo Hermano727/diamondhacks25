@@ -38,4 +38,4 @@ yarn-error.*
 app-example
 .env
 google-creds.json
-*.json
+*.jsonapp/backend/google-creds.json
