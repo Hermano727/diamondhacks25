@@ -26,11 +26,11 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="receipt-parser"
+        name="receipt-parser/index"
         options={{
-          title: 'Scan Receipt',
+          title: 'Upload',
           tabBarIcon: ({ color, size }: { color: string; size: number }) => (
-            <Ionicons name="camera" size={size} color={color} />
+            <Ionicons name="add-circle" size={size + 4} color={color} />
           ),
         }}
       />
