@@ -91,7 +91,7 @@ const ReceiptParserScreen = () => {
     } as unknown as Blob);
 
     try {
-      const response = await axios.post<ReceiptResponse>('http://100.112.72.217:8000/upload-receipt', formData, {
+      const response = await axios.post<ReceiptResponse>('https://brave-secretly-racer.ngrok-free.app/upload-receipt', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       console.log('✅ Parsed:', response.data);

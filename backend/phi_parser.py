@@ -30,11 +30,12 @@ Please return **valid JSON only** in the following format:
 Instructions:
 - Do not include any non-JSON explanation or formatting.
 - Extract items carefully, even if their names span multiple lines.
-- If a line like "2 Fried Chicken Sandwich $34.00" appears, it should be parsed as quantity 2, price 34.00 / 2 = 17.00 per item.
+- If a line like "2 Fried Chicken Sandwich $34.00" appears, it should be parsed as quantity 2, price 17.00 (34.00 / 2).
 - If quantity is not specified, default to quantity: 1.
 - Prices should be floats. Remove all currency symbols.
-- Do your best to infer correct quantities and split prices when needed.
-- If subtotal/tax/tip/total appear in the receipt, include them in the JSON.
+- Do not double-count tax or tip if already included in item prices or subtotal.
+- **If subtotal, tax, tip, or total appear explicitly in the receipt, always use those exact values instead of calculating.**
+- If values are missing from the receipt, infer them if possible.
 
 RECEIPT TEXT:
 \"\"\"
