@@ -1,18 +1,16 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
-  View, Text, TouchableOpacity, Image, StyleSheet, ScrollView, Alert,
+  View, Text, TouchableOpacity, StyleSheet, ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
-import axios from 'axios';
-import mime from 'mime';
+import { useRouter } from 'expo-router';
 
-const ReceiptParserScreen = () => {
-  const [imageUri, setImageUri] = useState<string | null>(null);
-  const [parsedResult, setParsedResult] = useState<any>(null);
+const HomeScreen = () => {
+  const router = useRouter();
 
-  const pickImage = async () => {
+  const handleUploadPress = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
@@ -20,41 +18,11 @@ const ReceiptParserScreen = () => {
     });
 
     if (!result.canceled) {
-      setImageUri(result.assets[0].uri);
-      setParsedResult(null);
-    }
-  };
-
-  const parseReceipt = async () => {
-    if (!imageUri) return Alert.alert("No image selected!");
-
-    const fileName = imageUri.split('/').pop() || 'receipt.jpg';
-    const fileType = mime.getType(fileName) || 'image/jpeg';
-
-    const formData = new FormData();
-    formData.append('receipt', {
-      uri: imageUri,
-      name: fileName,
-      type: fileType,
-    } as unknown as Blob);
-
-    try {
-      const response = await axios.post('http://100.112.72.217:8000/upload-receipt', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+      // Navigate to upload tab with the selected image
+      router.push({
+        pathname: "/(tabs)/receipt-parser",
+        params: { imageUri: result.assets[0].uri }
       });
-      console.log('✅ Parsed:', response.data);
-      setParsedResult(response.data);
-    } catch (err: any) {
-      console.error('❌ Parse error:', err.message);
-      Alert.alert("Failed to parse receipt.");
-    }
-  };
-
-  const handleUploadPress = () => {
-    if (imageUri) {
-      parseReceipt();
-    } else {
-      pickImage();
     }
   };
 
@@ -67,16 +35,10 @@ const ReceiptParserScreen = () => {
             <Text style={styles.subtitle}>Split your receipts easily</Text>
           </View>
 
-          {imageUri && (
-            <Image source={{ uri: imageUri }} style={styles.preview} resizeMode="contain" />
-          )}
-
           <TouchableOpacity style={styles.uploadButton} onPress={handleUploadPress}>
             <View style={styles.buttonContent}>
               <Ionicons name="camera" size={24} color="#fff" />
-              <Text style={styles.buttonText}>
-                {imageUri ? 'Parse Receipt' : 'Upload Receipt'}
-              </Text>
+              <Text style={styles.buttonText}>Upload Receipt</Text>
             </View>
             <Ionicons name="arrow-forward" size={24} color="#fff" />
           </TouchableOpacity>
@@ -101,22 +63,6 @@ const ReceiptParserScreen = () => {
               </View>
             </View>
           </View>
-
-          {parsedResult?.parsed?.items?.length > 0 && (
-            <View style={{ marginTop: 32 }}>
-              <Text style={styles.resultTitle}>Items:</Text>
-              {parsedResult.parsed.items.map((item: any, index: number) => {
-                const quantity = item.quantity !== undefined && item.quantity !== null ? item.quantity : 1;
-                return (
-                  <View key={index} style={styles.card}>
-                    <Text style={styles.cardTitle}>{item.name}</Text>
-                    <Text style={styles.cardDetail}>Price: ${parseFloat(item.price).toFixed(2)}</Text>
-                    <Text style={styles.cardDetail}>Qty: {quantity}</Text>
-                  </View>
-                );
-              })}
-            </View>
-          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -141,13 +87,6 @@ const styles = StyleSheet.create({
   },
   buttonContent: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   buttonText: { fontSize: 18, fontWeight: '600', color: '#fff' },
-  preview: {
-    width: '100%',
-    height: 300,
-    borderRadius: 12,
-    backgroundColor: '#ddd',
-    marginTop: 16,
-  },
   featuresContainer: { marginTop: 32 },
   featuresTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 12, color: '#1a237e' },
   featuresList: { flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
@@ -172,33 +111,6 @@ const styles = StyleSheet.create({
   },
   featureTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 4 },
   featureDescription: { fontSize: 14, color: '#666' },
-  resultTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#1a237e',
-    marginBottom: 12,
-  },
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 4,
-  },
-  cardDetail: {
-    fontSize: 14,
-    color: '#666',
-  },
 });
 
-export default ReceiptParserScreen;
+export default HomeScreen;
