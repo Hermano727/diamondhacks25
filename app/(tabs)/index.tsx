@@ -105,17 +105,16 @@ const ReceiptParserScreen = () => {
           {parsedResult?.parsed?.items?.length > 0 && (
             <View style={{ marginTop: 32 }}>
               <Text style={styles.resultTitle}>Items:</Text>
-              {parsedResult.parsed.items.map((item: any, index: number) => (
-                <View key={index} style={styles.card}>
-                  <Text style={styles.cardTitle}>{item.name}</Text>
-                  <Text style={styles.cardDetail}>
-                    Price: ${parseFloat(item.price).toFixed(2)}
-                  </Text>
-                  {item.quantity && (
-                    <Text style={styles.cardDetail}>Qty: {item.quantity}</Text>
-                  )}
-                </View>
-              ))}
+              {parsedResult.parsed.items.map((item: any, index: number) => {
+                const quantity = item.quantity !== undefined && item.quantity !== null ? item.quantity : 1;
+                return (
+                  <View key={index} style={styles.card}>
+                    <Text style={styles.cardTitle}>{item.name}</Text>
+                    <Text style={styles.cardDetail}>Price: ${parseFloat(item.price).toFixed(2)}</Text>
+                    <Text style={styles.cardDetail}>Qty: {quantity}</Text>
+                  </View>
+                );
+              })}
             </View>
           )}
         </View>
