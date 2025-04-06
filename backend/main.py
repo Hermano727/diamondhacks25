@@ -1,27 +1,40 @@
 from fastapi import FastAPI, UploadFile, File
+from fastapi.middleware.cors import CORSMiddleware
 from backend.ocr_vision import extract_text_from_image
 from backend.phi_parser import parse_with_phi
-import shutil
 import os
+import shutil
 
 app = FastAPI()
-UPLOAD_FOLDER = "uploads"
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+# CORS: Allow mobile frontend access
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Ideally set your device IP
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.post("/upload-receipt")
 async def upload_receipt(receipt: UploadFile = File(...)):
-    # Save uploaded image
-    file_path = os.path.join(UPLOAD_FOLDER, receipt.filename)
-    with open(file_path, "wb") as f:
-        shutil.copyfileobj(receipt.file, f)
+    # Save temp image
+    temp_path = f"temp_{receipt.filename}"
+    with open(temp_path, "wb") as buffer:
+        shutil.copyfileobj(receipt.file, buffer)
 
-    # Step 1: Google OCR
-    receipt_text = extract_text_from_image(file_path)
+    try:
+        # Step 1: OCR
+        raw_text = extract_text_from_image(temp_path)
 
-    # Step 2: LLaMA parsing
-    parsed_receipt = parse_with_phi(receipt_text)
+        # Step 2: Parse
+        parsed = parse_with_phi(raw_text)
 
-    return {
-        "raw_text": receipt_text,
-        "parsed": parsed_receipt
-    }
+        return {
+            "raw_text": raw_text,
+            "parsed": parsed
+        }
+
+    finally:
+        # Clean up temp file
+        os.remove(temp_path)

@@ -1,13 +1,29 @@
-import { StyleSheet, Text, View, TouchableOpacity, Image, ScrollView } from 'react-native';
+import React from 'react';
+import {
+  View, Text, TouchableOpacity, StyleSheet, ScrollView,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 
-export default function HomeScreen() {
+const HomeScreen = () => {
   const router = useRouter();
 
-  const handleUploadPress = () => {
-    router.push('/(tabs)/receipt-parser');
+  const handleUploadPress = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      // Navigate to upload tab with the selected image
+      router.push({
+        pathname: "/(tabs)/receipt-parser",
+        params: { imageUri: result.assets[0].uri }
+      });
+    }
   };
 
   return (
@@ -18,7 +34,7 @@ export default function HomeScreen() {
             <Text style={styles.title}>Splitr</Text>
             <Text style={styles.subtitle}>Split your receipts easily</Text>
           </View>
-          
+
           <TouchableOpacity style={styles.uploadButton} onPress={handleUploadPress}>
             <View style={styles.buttonContent}>
               <Ionicons name="camera" size={24} color="#fff" />
@@ -30,7 +46,6 @@ export default function HomeScreen() {
           <View style={styles.featuresContainer}>
             <Text style={styles.featuresTitle}>Features</Text>
             <View style={styles.featuresList}>
-
               <View style={styles.featureCard}>
                 <View style={styles.featureIcon}>
                   <Ionicons name="flash-outline" size={24} color="#1a237e" />
@@ -52,34 +67,15 @@ export default function HomeScreen() {
       </ScrollView>
     </SafeAreaView>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f6fa',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  content: {
-    padding: 16,
-  },
-  heroSection: {
-    alignItems: 'center',
-    marginVertical: 24,
-  },
-  title: {
-    fontSize: 40,
-    fontWeight: 'bold',
-    color: '#1a237e',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 18,
-    color: '#666',
-    textAlign: 'center',
-  },
+  container: { flex: 1, backgroundColor: '#f5f6fa' },
+  scrollView: { flex: 1 },
+  content: { padding: 16 },
+  heroSection: { marginBottom: 24 },
+  title: { fontSize: 32, fontWeight: 'bold', color: '#1a237e' },
+  subtitle: { fontSize: 16, color: '#666' },
   uploadButton: {
     backgroundColor: '#1a237e',
     borderRadius: 16,
@@ -87,63 +83,34 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 32,
-    shadowColor: '#1a237e',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
+    marginTop: 16,
   },
-  buttonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  featuresContainer: {
-    marginBottom: 24,
-  },
-  featuresTitle: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: '#1a237e',
-    marginBottom: 16,
-  },
-  featuresList: {
-    gap: 12,
-  },
+  buttonContent: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  buttonText: { fontSize: 18, fontWeight: '600', color: '#fff' },
+  featuresContainer: { marginTop: 32 },
+  featuresTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 12, color: '#1a237e' },
+  featuresList: { flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
   featureCard: {
+    flex: 1,
     backgroundColor: '#fff',
-    borderRadius: 16,
     padding: 16,
+    borderRadius: 12,
     shadowColor: '#000',
+    shadowOpacity: 0.05,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 2,
+    elevation: 1,
   },
   featureIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#f8f9fe',
+    backgroundColor: '#f0f4ff',
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
   },
-  featureTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1a237e',
-    marginBottom: 8,
-  },
-  featureDescription: {
-    fontSize: 14,
-    color: '#666',
-    lineHeight: 20,
-  },
-}); 
+  featureTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 4 },
+  featureDescription: { fontSize: 14, color: '#666' },
+});
+
+export default HomeScreen;

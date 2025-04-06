@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   View, 
   TextInput, 
@@ -6,11 +6,21 @@ import {
   StyleSheet, 
   TouchableOpacity, 
   ActivityIndicator,
-  Platform 
+  Platform,
+  KeyboardAvoidingView,
+  ScrollView,
+  SafeAreaView,
+  LogBox
 } from 'react-native';
 import { firebase, auth } from '../backend/firebase/firebaseConfig';
+
 import { router } from 'expo-router';
 import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha';
+
+// Ignore specific warning for now as it's a package issue
+LogBox.ignoreLogs([
+  'FirebaseRecaptcha: Support for defaultProps will be removed from function components in a future major release. Use JavaScript default parameters instead.'
+]);
 
 export default function PhoneAuthScreen() {
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -133,79 +143,102 @@ export default function PhoneAuthScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <FirebaseRecaptchaVerifierModal
-        ref={recaptchaVerifier}
-        firebaseConfig={firebase.app().options}
-        attemptInvisibleVerification
-      />
-      <Text style={styles.title}>Phone Authentication</Text>
-      
-      {status ? (
-        <Text style={styles.status}>{status}</Text>
-      ) : null}
-      
-      {error ? (
-        <Text style={styles.error}>{error}</Text>
-      ) : null}
-      
-      {!verificationId ? (
-        <>
-          <Text style={styles.label}>Enter your phone number</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="+1 (234) 567-8900"
-            value={phoneNumber}
-            onChangeText={handlePhoneNumberChange}
-            keyboardType="phone-pad"
-            autoComplete="tel"
-          />
-          <TouchableOpacity 
-            style={[styles.button, (!validatePhoneNumber(phoneNumber) || loading) && styles.buttonDisabled]}
-            onPress={attemptPhoneVerification}
-            disabled={!validatePhoneNumber(phoneNumber) || loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
+    <SafeAreaView style={styles.safeArea}>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardView}
+      >
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.container}>
+            <FirebaseRecaptchaVerifierModal
+              ref={recaptchaVerifier}
+              firebaseConfig={firebase.app().options}
+              attemptInvisibleVerification
+            />
+            <Text style={styles.title}>Phone Authentication</Text>
+            
+            {status ? (
+              <Text style={styles.status}>{status}</Text>
+            ) : null}
+            
+            {error ? (
+              <Text style={styles.error}>{error}</Text>
+            ) : null}
+            
+            {!verificationId ? (
+              <>
+                <Text style={styles.label}>Enter your phone number</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="+1 (234) 567-8900"
+                  value={phoneNumber}
+                  onChangeText={handlePhoneNumberChange}
+                  keyboardType="phone-pad"
+                  autoComplete="tel"
+                />
+                <TouchableOpacity 
+                  style={[styles.button, (!validatePhoneNumber(phoneNumber) || loading) && styles.buttonDisabled]}
+                  onPress={attemptPhoneVerification}
+                  disabled={!validatePhoneNumber(phoneNumber) || loading}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={styles.buttonText}>Send Verification Code</Text>
+                  )}
+                </TouchableOpacity>
+              </>
             ) : (
-              <Text style={styles.buttonText}>Send Verification Code</Text>
+              <>
+                <Text style={styles.label}>Enter verification code</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="123456"
+                  value={verificationCode}
+                  onChangeText={setVerificationCode}
+                  keyboardType="number-pad"
+                  maxLength={6}
+                />
+                <TouchableOpacity 
+                  style={[styles.button, (!verificationCode || loading) && styles.buttonDisabled]}
+                  onPress={confirmCode}
+                  disabled={!verificationCode || loading}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={styles.buttonText}>Verify Code</Text>
+                  )}
+                </TouchableOpacity>
+              </>
             )}
-          </TouchableOpacity>
-        </>
-      ) : (
-        <>
-          <Text style={styles.label}>Enter verification code</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="123456"
-            value={verificationCode}
-            onChangeText={setVerificationCode}
-            keyboardType="number-pad"
-            maxLength={6}
-          />
-          <TouchableOpacity 
-            style={[styles.button, (!verificationCode || loading) && styles.buttonDisabled]}
-            onPress={confirmCode}
-            disabled={!verificationCode || loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.buttonText}>Verify Code</Text>
-            )}
-          </TouchableOpacity>
-        </>
-      )}
-    </View>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  keyboardView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
   container: {
     flex: 1,
     backgroundColor: '#fff',
     padding: 20,
     justifyContent: 'center',
+    minHeight: '100%',
   },
   title: {
     fontSize: 24,
@@ -231,6 +264,7 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 8,
     alignItems: 'center',
+    marginBottom: Platform.OS === 'ios' ? 20 : 0,
   },
   buttonDisabled: {
     backgroundColor: '#ccc',
