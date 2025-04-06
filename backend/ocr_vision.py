@@ -10,8 +10,14 @@ creds_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
 if creds_path is None:
     raise ValueError("GOOGLE_APPLICATION_CREDENTIALS not found in .env")
 
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = creds_path
+# Get the absolute path to the credentials file
+root_dir = os.path.dirname(os.path.dirname(__file__))
+creds_path = os.path.join(root_dir, creds_path)
 
+if not os.path.exists(creds_path):
+    raise ValueError(f"Credentials file not found at: {creds_path}")
+
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = creds_path
 
 client = vision.ImageAnnotatorClient()
 

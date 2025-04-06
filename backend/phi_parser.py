@@ -1,6 +1,7 @@
 import requests
 import os
 import json
+import re
 
 from dotenv import load_dotenv
 # Load .env from root directory
@@ -42,19 +43,40 @@ RECEIPT:
 
         data = response.json()
 
-        # ✅ Debug raw response if needed
-        # print("📦 Full response:", json.dumps(data, indent=2))
+        # Print raw response for debugging
+        print("RAW OpenRouter Response:", json.dumps(data, indent=2))
 
-        # Try both formats
-        print("🕵️ RAW OpenRouter Response:", json.dumps(data, indent=2))
-
-        if "choices" in data:
-            return json.loads(data["choices"][0]["message"]["content"])
+        # Extract the content from the response
+        content = None
+        if "choices" in data and len(data["choices"]) > 0:
+            content = data["choices"][0]["message"]["content"]
         elif "response" in data:
-            return json.loads(data["response"])
-        else:
-            raise ValueError("Unexpected response format")
+            content = data["response"]
+        
+        if not content:
+            raise ValueError("No content found in response")
+        
+        # Clean the content - remove comments and fix common JSON issues
+        # Remove any comments (// or /* */)
+        content = re.sub(r'//.*?$', '', content, flags=re.MULTILINE)
+        content = re.sub(r'/\*.*?\*/', '', content, flags=re.DOTALL)
+        
+        # Try to parse the cleaned JSON
+        try:
+            return json.loads(content)
+        except json.JSONDecodeError as e:
+            print(f"JSON parsing error: {e}")
+            # Try to extract just the JSON part if it's wrapped in markdown code blocks
+            json_match = re.search(r'```json\s*(.*?)\s*```', content, re.DOTALL)
+            if json_match:
+                try:
+                    return json.loads(json_match.group(1))
+                except:
+                    pass
+            
+            # If all else fails, return a structured error
+            return {"error": "Failed to parse receipt", "details": str(e)}
 
     except Exception as e:
-        print("❌ Phi-3 error:", e)
+        print(f"Phi-3 error: {e}")
         return {"error": "Failed to parse receipt"}
