@@ -3,7 +3,8 @@ import os
 import json
 
 from dotenv import load_dotenv
-load_dotenv()
+# Load .env from root directory
+load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env'))
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
 def parse_with_phi(receipt_text):

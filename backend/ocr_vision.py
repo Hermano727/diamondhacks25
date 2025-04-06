@@ -2,7 +2,8 @@ from google.cloud import vision
 from dotenv import load_dotenv
 import os
 
-load_dotenv()
+# Load .env from root directory
+load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env'))
 
 creds_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
 
