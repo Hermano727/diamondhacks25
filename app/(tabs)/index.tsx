@@ -1,5 +1,5 @@
 import { Image, StyleSheet, Platform } from 'react-native';
-import { Link } from 'expo-router'; // ✅ Add this!
+import { Link } from 'expo-router'; // Using Expo Router's Link
 
 import { HelloWave } from '@/components/HelloWave';
 import ParallaxScrollView from '@/components/ParallaxScrollView';
@@ -37,7 +37,7 @@ export default function HomeScreen() {
         </ThemedText>
       </ThemedView>
 
-      {/* ✅ Add this block to link to your Assign Items screen */}
+      {/* Option A: Standard route (if assign-items.tsx is at app/assign-items.tsx) */}
       <ThemedView style={styles.stepContainer}>
         <ThemedText type="subtitle">Try Your Feature</ThemedText>
         <Link href="/assign-items">
@@ -45,6 +45,15 @@ export default function HomeScreen() {
         </Link>
       </ThemedView>
 
+      {/* Option B: If your file is inside a group folder, like app/(tabs)/assign-items.tsx */}
+      {/*
+      <ThemedView style={styles.stepContainer}>
+        <ThemedText type="subtitle">Try Your Feature</ThemedText>
+        <Link href="/(tabs)/assign-items">
+          <ThemedText type="link">Go to Assign Items ➜</ThemedText>
+        </Link>
+      </ThemedView>
+      */}
     </ParallaxScrollView>
   );
 }

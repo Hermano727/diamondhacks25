@@ -7,10 +7,10 @@ import {
   TextInput,
   Animated,
   Easing,
+  Image,
 } from 'react-native';
 import { useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import Clipboard from '@react-native-clipboard/clipboard';  // Import Clipboard
 
 const FRIEND_COLORS = ['#4CAF50', '#2196F3', '#FF9800', '#E91E63', '#9C27B0', '#00BCD4'];
 
@@ -26,8 +26,6 @@ export default function AssignItemsScreen() {
   ]);
   const [assignments, setAssignments] = useState<{ [itemName: string]: string[] }>({});
   const [expandedFriends, setExpandedFriends] = useState<{ [friend: string]: boolean }>({});
-  
-  const [buttonText, setButtonText] = useState('Share Receipt Summary'); // Button text state
 
   const progressAnim = [
     useState(new Animated.Value(1))[0],
@@ -77,7 +75,6 @@ export default function AssignItemsScreen() {
     }));
   };
 
-  // Calculate totals for each friend (for settle up page)
   const calculateTotals = () => {
     const summary: { [friend: string]: number } = {};
     friends.forEach((friend) => (summary[friend] = 0));
@@ -92,33 +89,11 @@ export default function AssignItemsScreen() {
   };
 
   const totals = calculateTotals();
-
-  // Grand total calculation (for the settle up page only)
   const grandTotal = Object.values(totals).reduce((sum, amount) => sum + amount, 0);
 
   const getFriendColor = (friend: string) => {
     const index = friends.indexOf(friend);
     return FRIEND_COLORS[index % FRIEND_COLORS.length];
-  };
-
-  // Function for sharing the receipt (copy to clipboard)
-  const handleShareReceipt = () => {
-    const summary = `
-      Grand Total: $${grandTotal.toFixed(2)}
-      ${friends.map(friend => {
-        const total = totals[friend].toFixed(2);
-        return `${friend}: $${total}`;
-      }).join('\n')}
-    `;
-    
-    // Copy the receipt summary to the clipboard
-    Clipboard.setString(summary);
-
-    // Change button text to 'Copied!' and reset it back after 2 seconds
-    setButtonText('Copied!');
-    setTimeout(() => {
-      setButtonText('Share Receipt Summary');
-    }, 2000);
   };
 
   return (
@@ -209,39 +184,37 @@ export default function AssignItemsScreen() {
               </View>
 
               <View style={{ marginTop: 8 }}>
-  {(() => {
-    const splitPeople = assignments[item.name] || [];
-    if (splitPeople.length === 0) return null;
+                {(() => {
+                  const splitPeople = assignments[item.name] || [];
+                  if (splitPeople.length === 0) return null;
 
-    let splitText = '';
+                  let splitText = '';
 
-    // Check for the case where there is only one person
-    if (splitPeople.length === 1) {
-      splitText = `${splitPeople[0]} bought this`; // Only one person is assigned the item
-    } else if (splitPeople.length === friends.length) {
-      splitText = 'Everyone is splitting'; // All friends are splitting the item
-    } else {
-      splitText = `${splitPeople.slice(0, -1).join(', ')} and ${
-        splitPeople.slice(-1)
-      } are splitting`; // Some friends are splitting the item
-    }
+                  if (splitPeople.length === 1) {
+                    splitText = `${splitPeople[0]} bought this`;
+                  } else if (splitPeople.length === friends.length) {
+                    splitText = 'Everyone is splitting';
+                  } else {
+                    splitText = `${splitPeople.slice(0, -1).join(', ')} and ${
+                      splitPeople.slice(-1)
+                    } are splitting`;
+                  }
 
-    return (
-      <Text
-        style={{
-          color: '#ccc',
-          fontSize: 14,
-          textAlign: 'center',
-          fontStyle: 'italic',
-          marginTop: 4,
-        }}
-      >
-        {splitText}
-      </Text>
-    );
-  })()}
-          </View>
-
+                  return (
+                    <Text
+                      style={{
+                        color: '#ccc',
+                        fontSize: 14,
+                        textAlign: 'center',
+                        fontStyle: 'italic',
+                        marginTop: 4,
+                      }}
+                    >
+                      {splitText}
+                    </Text>
+                  );
+                })()}
+              </View>
             </View>
           ))}
           <TouchableOpacity onPress={handleNext} style={styles.button}>
@@ -253,18 +226,14 @@ export default function AssignItemsScreen() {
       {step === 3 && (
         <>
           <Text style={styles.titleCenter}>💰 Split Up!</Text>
-          {/* Grand Total */}
           <View style={styles.summaryCard}>
             <Text style={styles.summaryText}>
               Grand Total: <Text style={{ fontWeight: 'bold' }}>${grandTotal.toFixed(2)}</Text>
             </Text>
           </View>
 
-          {/* Payment Options */}
           {friends.map((friend) => {
             const total = totals[friend].toFixed(2);
-            const zelleInfo = `${friend.toLowerCase()}@example.com`;
-
             return (
               <View key={friend} style={{ marginBottom: 28 }}>
                 <TouchableOpacity
@@ -297,7 +266,10 @@ export default function AssignItemsScreen() {
                       <Text style={styles.cardText}>Pay with Venmo</Text>
                     </View>
                     <View style={styles.payCard}>
-                      <Ionicons name="logo-zelle" size={30} color="#1A237E" />
+                      <Image
+                        source={require('../assets/images/zelle.png')}
+                        style={styles.icon}
+                      />
                       <Text style={styles.cardText}>Send with Zelle</Text>
                     </View>
                     <View style={styles.payCard}>
@@ -309,15 +281,9 @@ export default function AssignItemsScreen() {
               </View>
             );
           })}
-
-          {/* Share Receipt Summary Button */}
-          <TouchableOpacity onPress={handleShareReceipt} style={styles.button}>
-            <Text style={styles.buttonText}>{buttonText}</Text>
-          </TouchableOpacity>
         </>
       )}
 
-      {/* Navigation Buttons */}
       <View style={{ marginTop: 32, alignItems: 'center' }}>
         {step > 1 && (
           <TouchableOpacity onPress={handleBack} style={styles.button}>
@@ -390,6 +356,25 @@ const styles = StyleSheet.create({
     color: '#fff',
     textAlign: 'center',
     fontSize: 18,
+  },
+  card: {
+    marginBottom: 15,
+    padding: 10,
+    borderRadius: 8,
+    backgroundColor: '#f0f0f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  itemName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  price: {
+    fontSize: 16,
+    color: '#1A237E',
   },
   summaryCard: {
     backgroundColor: '#E0E0E0',
