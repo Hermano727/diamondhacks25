@@ -50,57 +50,122 @@ const ReceiptParserScreen = () => {
     }
   };
 
+  const handleUploadPress = () => {
+    if (imageUri) {
+      parseReceipt();
+    } else {
+      pickImage();
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.title}>Upload & Parse Receipt</Text>
-
-        {imageUri && (
-          <Image source={{ uri: imageUri }} style={styles.preview} resizeMode="contain" />
-        )}
-
-        <View style={{ marginVertical: 16 }}>
-          <TouchableOpacity style={styles.button} onPress={pickImage}>
-            <Ionicons name="images" size={20} color="#fff" />
-            <Text style={styles.buttonText}>Choose Receipt</Text>
-          </TouchableOpacity>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        <View style={styles.content}>
+          <View style={styles.heroSection}>
+            <Text style={styles.title}>Splitr</Text>
+            <Text style={styles.subtitle}>Split your receipts easily</Text>
+          </View>
 
           {imageUri && (
-            <TouchableOpacity style={styles.button} onPress={parseReceipt}>
-              <Ionicons name="document-text" size={20} color="#fff" />
-              <Text style={styles.buttonText}>Parse Receipt</Text>
-            </TouchableOpacity>
+            <Image source={{ uri: imageUri }} style={styles.preview} resizeMode="contain" />
+          )}
+
+          <TouchableOpacity style={styles.uploadButton} onPress={handleUploadPress}>
+            <View style={styles.buttonContent}>
+              <Ionicons name="camera" size={24} color="#fff" />
+              <Text style={styles.buttonText}>
+                {imageUri ? 'Parse Receipt' : 'Upload Receipt'}
+              </Text>
+            </View>
+            <Ionicons name="arrow-forward" size={24} color="#fff" />
+          </TouchableOpacity>
+
+          <View style={styles.featuresContainer}>
+            <Text style={styles.featuresTitle}>Features</Text>
+            <View style={styles.featuresList}>
+
+              <View style={styles.featureCard}>
+                <View style={styles.featureIcon}>
+                  <Ionicons name="flash-outline" size={24} color="#1a237e" />
+                </View>
+                <Text style={styles.featureTitle}>Instant Parsing</Text>
+                <Text style={styles.featureDescription}>Advanced AI to extract receipt details quickly</Text>
+              </View>
+
+              <View style={styles.featureCard}>
+                <View style={styles.featureIcon}>
+                  <Ionicons name="people-outline" size={24} color="#1a237e" />
+                </View>
+                <Text style={styles.featureTitle}>Easy Splitting</Text>
+                <Text style={styles.featureDescription}>Split expenses fairly with your friends</Text>
+              </View>
+            </View>
+          </View>
+
+          {parsedResult && (
+            <View style={styles.result}>
+              <Text style={styles.resultTitle}>Parsed Result:</Text>
+              <Text style={styles.resultText}>
+                {JSON.stringify(parsedResult, null, 2)}
+              </Text>
+            </View>
           )}
         </View>
-
-        {parsedResult && (
-          <View style={styles.result}>
-            <Text style={styles.resultTitle}>Parsed Result:</Text>
-            <Text style={styles.resultText}>
-              {JSON.stringify(parsedResult, null, 2)}
-            </Text>
-          </View>
-        )}
       </ScrollView>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f2f2f2' },
-  content: { padding: 20 },
-  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 16 },
-  preview: { width: '100%', height: 300, borderRadius: 12, backgroundColor: '#ccc' },
-  button: {
+  container: { flex: 1, backgroundColor: '#f5f6fa' },
+  scrollView: { flex: 1 },
+  content: { padding: 16 },
+  heroSection: { marginBottom: 24 },
+  title: { fontSize: 32, fontWeight: 'bold', color: '#1a237e' },
+  subtitle: { fontSize: 16, color: '#666' },
+  uploadButton: {
+    backgroundColor: '#1a237e',
+    borderRadius: 16,
+    padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1a237e',
-    padding: 14,
-    borderRadius: 10,
-    marginBottom: 12,
-    gap: 10,
+    justifyContent: 'space-between',
+    marginTop: 16,
   },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  buttonContent: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  buttonText: { fontSize: 18, fontWeight: '600', color: '#fff' },
+  preview: {
+    width: '100%',
+    height: 300,
+    borderRadius: 12,
+    backgroundColor: '#ddd',
+    marginTop: 16,
+  },
+  featuresContainer: { marginTop: 32 },
+  featuresTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 12, color: '#1a237e' },
+  featuresList: { flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
+  featureCard: {
+    flex: 1,
+    backgroundColor: '#fff',
+    padding: 16,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  featureIcon: {
+    backgroundColor: '#f0f4ff',
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  featureTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 4 },
+  featureDescription: { fontSize: 14, color: '#666' },
   result: {
     backgroundColor: '#fff',
     padding: 16,
