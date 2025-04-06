@@ -1,16 +1,47 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet, ScrollView, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Image,
+  StyleSheet,
+  ScrollView,
+  Alert,
+  ActivityIndicator,
+  Share,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import mime from 'mime';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, router } from 'expo-router';
+
+interface ReceiptItem {
+  name: string;
+  price: number;
+  quantity: number;
+}
+
+interface ParsedReceipt {
+  items: ReceiptItem[];
+  subtotal: number;
+  tax: number;
+  tip: number;
+  total: number;
+}
+
+interface ReceiptResponse {
+  parsed: ParsedReceipt;
+  raw_text?: string;
+}
 
 const ReceiptParserScreen = () => {
   const { imageUri } = useLocalSearchParams();
   const [image, setImage] = useState<string | null>(null);
-  const [parsedResult, setParsedResult] = useState<any>(null);
+  const [parsedResult, setParsedResult] = useState<ReceiptResponse | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Set the image from params when the screen loads
   useEffect(() => {
@@ -49,25 +80,77 @@ const ReceiptParserScreen = () => {
   const parseReceipt = async () => {
     if (!image) return Alert.alert("No image selected!");
 
-    const fileName = image.split('/').pop() || 'receipt.jpg';
-    const fileType = mime.getType(fileName) || 'image/jpeg';
+    setLoading(true);
+    setError(null);
 
     const formData = new FormData();
     formData.append('receipt', {
       uri: image,
-      name: fileName,
-      type: fileType,
+      type: 'image/jpeg',
+      name: 'receipt.jpg'
     } as unknown as Blob);
 
     try {
-      const response = await axios.post('http://100.112.72.217:8000/upload-receipt', formData, {
+      const response = await axios.post<ReceiptResponse>('http://100.112.72.217:8000/upload-receipt', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       console.log('✅ Parsed:', response.data);
-      setParsedResult(response.data);
+      
+      // Ensure the data is properly formatted
+      const parsedData = response.data.parsed || {} as ParsedReceipt;
+      const items = (parsedData.items || []).map((item: ReceiptItem) => ({
+        name: item.name || 'Unknown Item',
+        price: typeof item.price === 'number' ? item.price : parseFloat(item.price) || 0,
+        quantity: typeof item.quantity === 'number' ? item.quantity : parseInt(item.quantity) || 1
+      }));
+
+      setParsedResult({
+        ...response.data,
+        parsed: {
+          ...parsedData,
+          items,
+          subtotal: typeof parsedData.subtotal === 'number' ? parsedData.subtotal : parseFloat(parsedData.subtotal) || 0,
+          tax: typeof parsedData.tax === 'number' ? parsedData.tax : parseFloat(parsedData.tax) || 0,
+          tip: typeof parsedData.tip === 'number' ? parsedData.tip : parseFloat(parsedData.tip) || 0,
+          total: typeof parsedData.total === 'number' ? parsedData.total : parseFloat(parsedData.total) || 0
+        }
+      });
     } catch (err: any) {
       console.error('❌ Parse error:', err.message);
+      setError(err.message || 'Failed to parse receipt. Please try again.');
       Alert.alert("Failed to parse receipt.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSplitBill = () => {
+    if (parsedResult?.parsed?.items) {
+      router.push({
+        pathname: '/splitting/assign',
+        params: {
+          items: JSON.stringify(parsedResult.parsed.items),
+          subtotal: parsedResult.parsed.subtotal,
+          tax: parsedResult.parsed.tax,
+          tip: parsedResult.parsed.tip,
+          total: parsedResult.parsed.total
+        },
+      });
+    }
+  };
+
+  const handleShare = async () => {
+    if (!parsedResult) return;
+    
+    try {
+      const url = `http://100.112.72.217:8000/preview/receipt/${Date.now()}`;
+      await Share.share({ 
+        message: `Check out our split: ${url}`,
+        title: 'Receipt Split'
+      });
+    } catch (err) {
+      console.error('❌ Share error:', err);
+      Alert.alert("Failed to share receipt.");
     }
   };
 
@@ -114,26 +197,88 @@ const ReceiptParserScreen = () => {
             )}
           </View>
 
-          {image && (
-            <TouchableOpacity style={styles.parseButton} onPress={parseReceipt}>
-              <Text style={styles.parseButtonText}>Parse Receipt</Text>
-              <Ionicons name="arrow-forward" size={24} color="#fff" />
+          {error && <Text style={styles.errorText}>{error}</Text>}
+
+          {image && !parsedResult && (
+            <TouchableOpacity
+              style={[styles.parseButton, loading && styles.buttonDisabled]}
+              onPress={parseReceipt}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <>
+                  <Text style={styles.parseButtonText}>Parse Receipt</Text>
+                  <Ionicons name="arrow-forward" size={24} color="#fff" />
+                </>
+              )}
             </TouchableOpacity>
           )}
 
-          {parsedResult?.parsed?.items?.length > 0 && (
-            <View style={{ marginTop: 32 }}>
-              <Text style={styles.resultTitle}>Items:</Text>
-              {parsedResult.parsed.items.map((item: any, index: number) => {
-                const quantity = item.quantity !== undefined && item.quantity !== null ? item.quantity : 1;
-                return (
+          {parsedResult?.parsed?.items && parsedResult.parsed.items.length > 0 && (
+            <View style={styles.parsedDataContainer}>
+              <View style={styles.itemsContainer}>
+                {parsedResult.parsed.items.map((item: ReceiptItem, index: number) => (
                   <View key={index} style={styles.card}>
-                    <Text style={styles.cardTitle}>{item.name}</Text>
-                    <Text style={styles.cardDetail}>Price: ${parseFloat(item.price).toFixed(2)}</Text>
-                    <Text style={styles.cardDetail}>Qty: {quantity}</Text>
+                    <View style={styles.cardHeader}>
+                      <View style={styles.itemInfo}>
+                        {item.quantity > 1 && (
+                          <View style={styles.quantityBadge}>
+                            <Text style={styles.quantityText}>{item.quantity}x</Text>
+                          </View>
+                        )}
+                        <Text style={styles.cardTitle}>{item.name}</Text>
+                      </View>
+                      <Text style={styles.cardPrice}>${item.price.toFixed(2)}</Text>
+                    </View>
+                    {item.quantity > 1 && (
+                      <Text style={styles.cardSubtotal}>
+                        Total: ${(item.price * item.quantity).toFixed(2)}
+                      </Text>
+                    )}
                   </View>
-                );
-              })}
+                ))}
+              </View>
+
+              <View style={styles.totalsSection}>
+                <View style={styles.totalRow}>
+                  <Text style={styles.totalLabel}>Subtotal:</Text>
+                  <Text style={styles.totalAmount}>${parsedResult.parsed.subtotal.toFixed(2)}</Text>
+                </View>
+                {parsedResult.parsed.tax !== undefined && (
+                  <View style={styles.totalRow}>
+                    <Text style={styles.totalLabel}>Tax:</Text>
+                    <Text style={styles.totalAmount}>${parsedResult.parsed.tax.toFixed(2)}</Text>
+                  </View>
+                )}
+                {parsedResult.parsed.tip !== undefined && parsedResult.parsed.tip > 0 && (
+                  <View style={styles.totalRow}>
+                    <Text style={styles.totalLabel}>Tip:</Text>
+                    <Text style={styles.totalAmount}>${parsedResult.parsed.tip.toFixed(2)}</Text>
+                  </View>
+                )}
+                {parsedResult.parsed.total !== undefined && (
+                  <View style={[styles.totalRow, styles.grandTotal]}>
+                    <Text style={[styles.totalLabel, styles.grandTotalLabel]}>Total:</Text>
+                    <Text style={[styles.totalAmount, styles.grandTotalAmount]}>
+                      ${parsedResult.parsed.total.toFixed(2)}
+                    </Text>
+                  </View>
+                )}
+              </View>
+
+              <View style={styles.actionButtons}>
+                <TouchableOpacity style={styles.splitButton} onPress={handleSplitBill}>
+                  <Ionicons name="people" size={24} color="#fff" />
+                  <Text style={styles.splitButtonText}>Split Bill</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
+                  <Ionicons name="share" size={24} color="#fff" />
+                  <Text style={styles.shareButtonText}>Share</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           )}
         </View>
@@ -250,11 +395,63 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#fff',
   },
-  resultTitle: {
-    fontSize: 20,
+  errorText: {
+    color: '#d32f2f',
+    fontSize: 14,
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  buttonDisabled: {
+    opacity: 0.7,
+  },
+  parsedDataContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+    marginTop: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  itemsContainer: {
+    marginBottom: 16,
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 24,
+  },
+  splitButton: {
+    flex: 1,
+    backgroundColor: '#4CAF50',
+    borderRadius: 16,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  shareButton: {
+    flex: 1,
+    backgroundColor: '#1a237e',
+    borderRadius: 16,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  splitButtonText: {
+    fontSize: 18,
     fontWeight: '600',
-    color: '#1a237e',
-    marginBottom: 12,
+    color: '#fff',
+  },
+  shareButtonText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#fff',
   },
   card: {
     backgroundColor: '#fff',
@@ -267,15 +464,71 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  itemInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  quantityBadge: {
+    backgroundColor: '#1a237e',
+    borderRadius: 12,
+    padding: 4,
+    marginRight: 8,
+  },
+  quantityText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
   cardTitle: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#333',
     marginBottom: 4,
   },
-  cardDetail: {
+  cardPrice: {
     fontSize: 14,
     color: '#666',
+  },
+  cardSubtotal: {
+    fontSize: 14,
+    color: '#666',
+  },
+  totalsSection: {
+    marginBottom: 16,
+  },
+  totalRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  totalLabel: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  totalAmount: {
+    fontSize: 14,
+    color: '#666',
+  },
+  grandTotal: {
+    borderTopWidth: 1,
+    borderTopColor: '#ccc',
+  },
+  grandTotalLabel: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  grandTotalAmount: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#1a237e',
   },
 });
 

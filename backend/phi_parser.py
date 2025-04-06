@@ -10,17 +10,33 @@ OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
 def parse_with_phi(receipt_text):
     prompt = f"""
-You are a receipt parser. Extract and return this data as JSON:
-- items: list of {{ name, price }}
-- subtotal
-- tax
-- tip
-- total
+You are a receipt parsing assistant. Your job is to extract structured data from the receipt text below.
 
-Return only valid JSON.
+Please return **valid JSON only** in the following format:
+{{
+  "items": [
+    {{
+      "name": "string",
+      "price": number,
+      "quantity": integer
+    }}
+  ],
+  "subtotal": number,
+  "tax": number,
+  "tip": number,
+  "total": number
+}}
 
-If there is a multiple line entry, be careful.
-RECEIPT:
+Instructions:
+- Do not include any non-JSON explanation or formatting.
+- Extract items carefully, even if their names span multiple lines.
+- If a line like "2 Fried Chicken Sandwich $34.00" appears, it should be parsed as quantity 2, price 34.00 / 2 = 17.00 per item.
+- If quantity is not specified, default to quantity: 1.
+- Prices should be floats. Remove all currency symbols.
+- Do your best to infer correct quantities and split prices when needed.
+- If subtotal/tax/tip/total appear in the receipt, include them in the JSON.
+
+RECEIPT TEXT:
 \"\"\"
 {receipt_text}
 \"\"\"
