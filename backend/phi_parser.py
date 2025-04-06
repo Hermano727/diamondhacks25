@@ -5,7 +5,6 @@ import json
 from dotenv import load_dotenv
 load_dotenv()
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
-print("🔐 API KEY (preview):", OPENROUTER_API_KEY[:10], "..." if OPENROUTER_API_KEY else "❌ None found")
 
 def parse_with_phi(receipt_text):
     prompt = f"""
