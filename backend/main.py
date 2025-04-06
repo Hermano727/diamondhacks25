@@ -1,7 +1,7 @@
 from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
-from backend.ocr_vision import extract_text_from_image
-from backend.phi_parser import parse_with_phi
+from ocr_vision import extract_text_from_image
+from phi_parser import parse_with_phi
 import os
 import shutil
 

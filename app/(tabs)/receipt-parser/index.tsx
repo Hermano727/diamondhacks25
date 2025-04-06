@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import mime from 'mime';
 import { useLocalSearchParams, router } from 'expo-router';
+import Constants from 'expo-constants';
 
 interface ReceiptItem {
   name: string;
@@ -76,7 +77,10 @@ const ReceiptParserScreen = () => {
       setParsedResult(null);
     }
   };
-
+  const getLocalApiUrl = (path: string) => {
+    const debuggerHost = Constants.expoConfig?.hostUri?.split(':')[0];
+    return `http://${debuggerHost || 'localhost'}:8000${path}`;
+  };
   const parseReceipt = async () => {
     if (!image) return Alert.alert("No image selected!");
 
@@ -84,15 +88,20 @@ const ReceiptParserScreen = () => {
     setError(null);
 
     const formData = new FormData();
-    formData.append('receipt', {
+    const file = {
       uri: image,
       type: 'image/jpeg',
       name: 'receipt.jpg'
-    } as unknown as Blob);
+    };
+    formData.append('receipt', file as any);
 
     try {
-      const response = await axios.post<ReceiptResponse>('http://100.112.72.217:8000/upload-receipt', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+        const response = await axios.post(getLocalApiUrl('/upload-receipt'), formData, {
+        headers: { 
+          'Content-Type': 'multipart/form-data',
+          'Accept': 'application/json'
+        },
+        timeout: 30000, // Increased timeout to 30 seconds
       });
       console.log('✅ Parsed:', response.data);
       
