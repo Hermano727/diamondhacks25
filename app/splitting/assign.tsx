@@ -11,6 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import Slider from '@react-native-community/slider';
 
 interface ReceiptItem {
   name: string;
@@ -32,7 +33,7 @@ const SplitBillScreen = () => {
   const params = useLocalSearchParams();
   const items = JSON.parse(params.items as string) as ReceiptItem[];
   const subtotal = parseFloat(params.subtotal as string);
-  const taxPercentage = parseFloat(params.taxPercentage as string);
+  const [taxPercentage, setTaxPercentage] = useState(parseFloat(params.taxPercentage as string));
   const tipPercentage = parseFloat(params.tipPercentage as string);
   const useCustomTip = params.useCustomTip === 'true';
   const customTipAmount = parseFloat(params.customTipAmount as string);
@@ -42,6 +43,7 @@ const SplitBillScreen = () => {
   const [people, setPeople] = useState<Person[]>([
     { id: '1', name: '', items: [], subtotal: 0, tax: 0, tip: 0, total: 0 }
   ]);
+  const [confirmed, setConfirmed] = useState(false);
 
   const addPerson = () => {
     const newPerson: Person = {
@@ -54,12 +56,30 @@ const SplitBillScreen = () => {
       total: 0,
     };
     setPeople([...people, newPerson]);
+    setConfirmed(false);
+  };
+
+  const confirmPerson = () => {
+    // Check if the last person has a name
+    const lastPerson = people[people.length - 1];
+    if (!lastPerson.name.trim()) {
+      Alert.alert(
+        "Name Required",
+        "Please enter a name for the current person before confirming.",
+        [{ text: "OK" }]
+      );
+      return;
+    }
+    setConfirmed(true);
   };
 
   const updatePersonName = (id: string, name: string) => {
     setPeople(people.map(person => 
       person.id === id ? { ...person, name } : person
     ));
+    if (id === people[people.length - 1].id) {
+      setConfirmed(false);
+    }
   };
 
   const assignItem = (item: ReceiptItem, personId: string) => {
@@ -102,13 +122,34 @@ const SplitBillScreen = () => {
     }));
   };
 
-  const handlePreview = () => {
-    // Check if all items are assigned
-    const assignedItems = people.reduce((sum, p) => sum + p.items.length, 0);
-    if (assignedItems !== items.length) {
-      Alert.alert("Please assign all items before previewing");
+  const deletePerson = (id: string) => {
+    // Don't allow deleting the last person
+    if (people.length <= 1) {
+      Alert.alert("Cannot delete the last person");
       return;
     }
+
+    // Remove the person and reassign their items to the first person
+    const personToDelete = people.find(p => p.id === id);
+    const firstPerson = people[0];
+    
+    setPeople(people.filter(p => p.id !== id).map(p => {
+      if (p.id === firstPerson.id && personToDelete) {
+        // Add the deleted person's items to the first person
+        return {
+          ...p,
+          items: [...p.items, ...personToDelete.items],
+          subtotal: p.subtotal + personToDelete.subtotal,
+          tax: p.tax + personToDelete.tax,
+          tip: p.tip + personToDelete.tip,
+          total: p.total + personToDelete.total
+        };
+      }
+      return p;
+    }));
+  };
+
+  const handlePreview = () => {
     // Check if all people have names
     const unnamedPeople = people.filter(p => !p.name.trim());
     if (unnamedPeople.length > 0) {
@@ -118,9 +159,38 @@ const SplitBillScreen = () => {
     router.push({
       pathname: '/splitting/preview',
       params: {
-        people: JSON.stringify(people)
+        people: JSON.stringify(people),
+        total: (subtotal + totalTax + totalTip).toString()
       }
     });
+  };
+
+  const handleTaxChange = (text: string) => {
+    // Allow empty string for deletion
+    if (text === '') {
+      setTaxPercentage(0);
+      return;
+    }
+
+    // Remove any non-numeric characters except decimal point
+    const cleanedText = text.replace(/[^0-9.]/g, '');
+    
+    // Ensure only one decimal point
+    const parts = cleanedText.split('.');
+    if (parts.length > 2) {
+      return;
+    }
+    
+    // Ensure no more than 2 decimal places
+    if (parts[1] && parts[1].length > 2) {
+      return;
+    }
+    
+    // Convert to number and ensure it's not negative
+    const value = parseFloat(cleanedText);
+    if (!isNaN(value) && value >= 0) {
+      setTaxPercentage(value);
+    }
   };
 
   return (
@@ -134,12 +204,21 @@ const SplitBillScreen = () => {
             {people.map(person => (
               <View key={person.id} style={styles.personCard}>
                 <View style={styles.personHeader}>
-                  <TextInput
-                    style={styles.personNameInput}
-                    placeholder="Enter name"
-                    value={person.name}
-                    onChangeText={(text) => updatePersonName(person.id, text)}
-                  />
+                  <View style={styles.nameInputContainer}>
+                    <TextInput
+                      style={styles.personNameInput}
+                      placeholder="Enter name"
+                      placeholderTextColor="#666"
+                      value={person.name}
+                      onChangeText={(text) => updatePersonName(person.id, text)}
+                    />
+                    <TouchableOpacity
+                      style={styles.deleteButton}
+                      onPress={() => deletePerson(person.id)}
+                    >
+                      <Ionicons name="trash-outline" size={20} color="#d32f2f" />
+                    </TouchableOpacity>
+                  </View>
                   <Text style={styles.personTotal}>${person.total.toFixed(2)}</Text>
                 </View>
                 
@@ -161,10 +240,18 @@ const SplitBillScreen = () => {
                 </View>
               </View>
             ))}
-            <TouchableOpacity style={styles.addButton} onPress={addPerson}>
-              <Ionicons name="person-add" size={24} color="#fff" />
-              <Text style={styles.addButtonText}>Add Person</Text>
-            </TouchableOpacity>
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity style={styles.addButton} onPress={addPerson}>
+                <Ionicons name="person-add" size={24} color="#fff" />
+                <Text style={styles.addButtonText}>Add Person</Text>
+              </TouchableOpacity>
+              {people[people.length - 1].name.trim() && !confirmed && (
+                <TouchableOpacity style={styles.confirmButton} onPress={confirmPerson}>
+                  <Ionicons name="checkmark" size={24} color="#fff" />
+                  <Text style={styles.confirmButtonText}>Confirm</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
 
           {/* Available Items */}
@@ -246,12 +333,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
+  nameInputContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 12,
+  },
   personNameInput: {
     fontSize: 18,
     fontWeight: '600',
     color: '#1a237e',
     flex: 1,
-    marginRight: 12,
+    backgroundColor: '#f8f9fe',
+    padding: 8,
+    borderRadius: 8,
   },
   personTotal: {
     fontSize: 18,
@@ -328,7 +423,12 @@ const styles = StyleSheet.create({
   removeButton: {
     padding: 4,
   },
+  buttonContainer: {
+    flexDirection: 'row',
+    gap: 12,
+  },
   addButton: {
+    flex: 1,
     backgroundColor: '#4CAF50',
     borderRadius: 12,
     padding: 16,
@@ -338,6 +438,21 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   addButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  confirmButton: {
+    flex: 1,
+    backgroundColor: '#1a237e',
+    borderRadius: 12,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  confirmButtonText: {
     color: '#fff',
     fontSize: 18,
     fontWeight: '600',
@@ -356,6 +471,36 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: '600',
+  },
+  deleteButton: {
+    padding: 4,
+    marginLeft: 8,
+  },
+  taxSection: {
+    marginBottom: 24,
+  },
+  taxSliderContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  taxSlider: {
+    width: '100%',
+    height: 40,
+  },
+  taxValueContainer: {
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  taxValue: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1a237e',
   },
 });
 

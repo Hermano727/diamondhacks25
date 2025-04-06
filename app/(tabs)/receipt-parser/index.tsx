@@ -11,6 +11,7 @@ import {
   Share,
   TextInput,
 } from 'react-native';
+import Slider from '@react-native-community/slider';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
@@ -153,23 +154,21 @@ const ReceiptParserScreen = () => {
     if (parsedResult?.parsed?.items) {
       const calculatedTip = useCustomTip ? (tipAmount || 0) : 
         (parsedResult.parsed.subtotal * (tipPercentage / 100));
+      const calculatedTax = parsedResult.parsed.subtotal * (taxPercentage / 100);
+      const total = parsedResult.parsed.subtotal + calculatedTax + calculatedTip;
       
       router.push({
         pathname: '/splitting/assign',
         params: {
           items: JSON.stringify(parsedResult.parsed.items),
-          subtotal: parsedResult.parsed.subtotal,
+          subtotal: parsedResult.parsed.subtotal.toString(),
           taxPercentage: taxPercentage.toString(),
           tipPercentage: tipPercentage.toString(),
           useCustomTip: useCustomTip.toString(),
           customTipAmount: tipAmount?.toString() || '0',
-          // Calculate total tax and tip for reference
-          totalTax: (parsedResult.parsed.subtotal * (taxPercentage / 100)).toString(),
+          totalTax: calculatedTax.toString(),
           totalTip: calculatedTip.toString(),
-          // Calculate total for reference
-          total: (parsedResult.parsed.subtotal + 
-                 (parsedResult.parsed.subtotal * (taxPercentage / 100)) + 
-                 calculatedTip).toString()
+          total: total.toString()
         },
       });
     }
@@ -187,6 +186,34 @@ const ReceiptParserScreen = () => {
     } catch (err) {
       console.error('❌ Share error:', err);
       Alert.alert("Failed to share receipt.");
+    }
+  };
+
+  const handleTaxChange = (text: string) => {
+    // Allow empty string for deletion
+    if (text === '') {
+      setTaxPercentage(0);
+      return;
+    }
+
+    // Remove any non-numeric characters except decimal point
+    const cleanedText = text.replace(/[^0-9.]/g, '');
+    
+    // Ensure only one decimal point
+    const parts = cleanedText.split('.');
+    if (parts.length > 2) {
+      return;
+    }
+    
+    // Ensure no more than 2 decimal places
+    if (parts[1] && parts[1].length > 2) {
+      return;
+    }
+    
+    // Convert to number and ensure it's not negative
+    const value = parseFloat(cleanedText);
+    if (!isNaN(value) && value >= 0) {
+      setTaxPercentage(value);
     }
   };
 
@@ -283,100 +310,92 @@ const ReceiptParserScreen = () => {
                   <Text style={styles.totalAmount}>${parsedResult.parsed.subtotal.toFixed(2)}</Text>
                 </View>
 
+                {/* Tax Input */}
                 <View style={styles.taxSection}>
-                  <Text style={styles.taxLabel}>Tax Percentage:</Text>
-                  <View style={styles.taxInputContainer}>
-                    <TextInput
-                      style={styles.taxInput}
-                      value={taxPercentage.toString()}
-                      onChangeText={(text) => {
-                        const value = parseFloat(text);
-                        if (!isNaN(value) && value >= 0) {
-                          setTaxPercentage(value);
-                        }
-                      }}
-                      keyboardType="numeric"
-                      placeholder="0"
+                  <Text style={styles.sectionTitle}>Tax Percentage</Text>
+                  <View style={styles.taxSliderContainer}>
+                    <Slider
+                      style={styles.taxSlider}
+                      minimumValue={0}
+                      maximumValue={15}
+                      step={0.05}
+                      value={taxPercentage}
+                      onValueChange={setTaxPercentage}
+                      minimumTrackTintColor="#1a237e"
+                      maximumTrackTintColor="#e8eaf6"
+                      thumbTintColor="#1a237e"
                     />
-                    <Text style={styles.percentSymbol}>%</Text>
-                  </View>
-                  <View style={styles.totalRow}>
-                    <Text style={styles.totalLabel}>Tax:</Text>
-                    <Text style={styles.totalAmount}>
-                      ${(parsedResult.parsed.subtotal * (taxPercentage / 100)).toFixed(2)}
-                    </Text>
+                    <View style={styles.taxValueContainer}>
+                      <Text style={styles.taxValue}>{taxPercentage.toFixed(2)}%</Text>
+                    </View>
                   </View>
                 </View>
 
                 <View style={styles.tipSection}>
-                  <Text style={styles.tipLabel}>Tip:</Text>
+                  <Text style={styles.sectionTitle}>Tip</Text>
                   <View style={styles.tipOptions}>
-                    <View style={styles.tipToggle}>
-                      <TouchableOpacity
-                        style={[styles.tipToggleButton, !useCustomTip && styles.selectedToggleButton]}
-                        onPress={() => setUseCustomTip(false)}
-                      >
-                        <Text style={[styles.tipToggleText, !useCustomTip && styles.selectedToggleText]}>
-                          Percentage
-                        </Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[styles.tipToggleButton, useCustomTip && styles.selectedToggleButton]}
-                        onPress={() => setUseCustomTip(true)}
-                      >
-                        <Text style={[styles.tipToggleText, useCustomTip && styles.selectedToggleText]}>
-                          Custom Amount
-                        </Text>
-                      </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.tipButton, !useCustomTip && tipPercentage === 15 && styles.selectedTipButton]}
+                      onPress={() => {
+                        setUseCustomTip(false);
+                        setTipPercentage(15);
+                      }}
+                    >
+                      <Text style={[styles.tipButtonText, !useCustomTip && tipPercentage === 15 && styles.selectedTipButtonText]}>15%</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.tipButton, !useCustomTip && tipPercentage === 18 && styles.selectedTipButton]}
+                      onPress={() => {
+                        setUseCustomTip(false);
+                        setTipPercentage(18);
+                      }}
+                    >
+                      <Text style={[styles.tipButtonText, !useCustomTip && tipPercentage === 18 && styles.selectedTipButtonText]}>18%</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.tipButton, !useCustomTip && tipPercentage === 20 && styles.selectedTipButton]}
+                      onPress={() => {
+                        setUseCustomTip(false);
+                        setTipPercentage(20);
+                      }}
+                    >
+                      <Text style={[styles.tipButtonText, !useCustomTip && tipPercentage === 20 && styles.selectedTipButtonText]}>20%</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.tipButton, !useCustomTip && tipPercentage === 22 && styles.selectedTipButton]}
+                      onPress={() => {
+                        setUseCustomTip(false);
+                        setTipPercentage(22);
+                      }}
+                    >
+                      <Text style={[styles.tipButtonText, !useCustomTip && tipPercentage === 22 && styles.selectedTipButtonText]}>22%</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.tipButton, useCustomTip && styles.selectedTipButton]}
+                      onPress={() => setUseCustomTip(true)}
+                    >
+                      <Text style={[styles.tipButtonText, useCustomTip && styles.selectedTipButtonText]}>Custom</Text>
+                    </TouchableOpacity>
+                  </View>
+                  {useCustomTip && (
+                    <View style={styles.customTipContainer}>
+                      <TextInput
+                        style={styles.customTipInput}
+                        placeholder="Enter custom tip amount"
+                        keyboardType="decimal-pad"
+                        value={tipAmount?.toString() || ''}
+                        onChangeText={(text) => {
+                          const value = parseFloat(text);
+                          if (!isNaN(value) && value >= 0) {
+                            setTipAmount(value);
+                          } else if (text === '') {
+                            setTipAmount(undefined);
+                          }
+                        }}
+                      />
+                      <Text style={styles.currencySymbol}>$</Text>
                     </View>
-
-                    {!useCustomTip ? (
-                      <View style={styles.tipButtons}>
-                        {[15, 18, 20, 22].map(percent => (
-                          <TouchableOpacity
-                            key={percent}
-                            style={[
-                              styles.tipButton,
-                              tipPercentage === percent && styles.selectedTipButton
-                            ]}
-                            onPress={() => setTipPercentage(percent)}
-                          >
-                            <Text style={[
-                              styles.tipButtonText,
-                              tipPercentage === percent && styles.selectedTipButtonText
-                            ]}>
-                              {percent}%
-                            </Text>
-                          </TouchableOpacity>
-                        ))}
-                      </View>
-                    ) : (
-                      <View style={styles.tipInputContainer}>
-                        <Text style={styles.dollarSymbol}>$</Text>
-                        <TextInput
-                          style={styles.tipInput}
-                          value={tipAmount?.toString() || ''}
-                          onChangeText={(text) => {
-                            const value = parseFloat(text);
-                            if (!isNaN(value) && value >= 0) {
-                              setTipAmount(value);
-                            } else if (text === '') {
-                              setTipAmount(null);
-                            }
-                          }}
-                          keyboardType="numeric"
-                          placeholder="0.00"
-                        />
-                      </View>
-                    )}
-                  </View>
-                  <View style={styles.totalRow}>
-                    <Text style={styles.totalLabel}>Tip Amount:</Text>
-                    <Text style={styles.totalAmount}>
-                      ${(useCustomTip ? (tipAmount || 0) : 
-                        (parsedResult.parsed.subtotal * (tipPercentage / 100))).toFixed(2)}
-                    </Text>
-                  </View>
+                  )}
                 </View>
 
                 {parsedResult.parsed.total !== undefined && (
@@ -643,7 +662,7 @@ const styles = StyleSheet.create({
   tipSection: {
     marginVertical: 16,
   },
-  tipLabel: {
+  sectionTitle: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#333',
@@ -651,49 +670,6 @@ const styles = StyleSheet.create({
   },
   tipOptions: {
     marginBottom: 16,
-  },
-  tipToggle: {
-    flexDirection: 'row',
-    backgroundColor: '#f0f0f0',
-    borderRadius: 8,
-    marginBottom: 16,
-  },
-  tipToggleButton: {
-    flex: 1,
-    padding: 12,
-    alignItems: 'center',
-  },
-  selectedToggleButton: {
-    backgroundColor: '#1a237e',
-  },
-  tipToggleText: {
-    fontSize: 14,
-    color: '#666',
-  },
-  selectedToggleText: {
-    color: '#fff',
-  },
-  tipInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f0f0f0',
-    borderRadius: 8,
-    padding: 8,
-  },
-  dollarSymbol: {
-    fontSize: 16,
-    color: '#333',
-    marginRight: 4,
-  },
-  tipInput: {
-    flex: 1,
-    fontSize: 16,
-    color: '#333',
-    padding: 8,
-  },
-  tipButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
   },
   tipButton: {
     padding: 8,
@@ -712,6 +688,45 @@ const styles = StyleSheet.create({
   selectedTipButtonText: {
     color: '#fff',
   },
+  customTipContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f0f0f0',
+    borderRadius: 8,
+    padding: 8,
+  },
+  customTipInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#333',
+    padding: 8,
+  },
+  currencySymbol: {
+    fontSize: 16,
+    color: '#333',
+    marginLeft: 4,
+  },
+  taxSection: {
+    marginVertical: 16,
+  },
+  taxSliderContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f0f0f0',
+    borderRadius: 8,
+    padding: 8,
+  },
+  taxSlider: {
+    flex: 1,
+  },
+  taxValueContainer: {
+    width: 60,
+    alignItems: 'center',
+  },
+  taxValue: {
+    fontSize: 16,
+    color: '#333',
+  },
   shareButton: {
     backgroundColor: '#1a237e',
     borderRadius: 16,
@@ -725,34 +740,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: '#fff',
-  },
-  taxSection: {
-    marginVertical: 16,
-  },
-  taxLabel: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 8,
-  },
-  taxInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f0f0f0',
-    borderRadius: 8,
-    padding: 8,
-    marginBottom: 8,
-  },
-  taxInput: {
-    flex: 1,
-    fontSize: 16,
-    color: '#333',
-    padding: 8,
-  },
-  percentSymbol: {
-    fontSize: 16,
-    color: '#666',
-    marginLeft: 4,
   },
 });
 
