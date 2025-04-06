@@ -24,7 +24,7 @@ Splitr is a mobile application that helps users scan and parse receipts, making 
 ## Getting Started
 
 ### Prerequisites
-- Node.js (v14 or later)
+- Node.js (v18 or later)
 - npm or yarn
 - Python 3.8 or later
 - Expo CLI
