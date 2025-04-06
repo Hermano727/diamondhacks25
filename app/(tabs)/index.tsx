@@ -30,13 +30,6 @@ export default function HomeScreen() {
           <View style={styles.featuresContainer}>
             <Text style={styles.featuresTitle}>Features</Text>
             <View style={styles.featuresList}>
-              <View style={styles.featureCard}>
-                <View style={styles.featureIcon}>
-                  <Ionicons name="person-outline" size={24} color="#1a237e" />
-                </View>
-                <Text style={styles.featureTitle}>No Account Required</Text>
-                <Text style={styles.featureDescription}>Start using the app instantly without registration</Text>
-              </View>
 
               <View style={styles.featureCard}>
                 <View style={styles.featureIcon}>
