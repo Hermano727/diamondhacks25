@@ -1,7 +1,8 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File
+from backend.ocr_vision import extract_text_from_image
+from backend.phi_parser import parse_with_phi
 import shutil
 import os
-import time
 
 app = FastAPI()
 UPLOAD_FOLDER = "uploads"
@@ -9,25 +10,18 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 @app.post("/upload-receipt")
 async def upload_receipt(receipt: UploadFile = File(...)):
-    # Generate a unique filename to avoid conflicts
-    timestamp = int(time.time())
-    filename = f"{timestamp}_{receipt.filename}"
-    file_path = os.path.join(UPLOAD_FOLDER, filename)
-    
-    try:
-        # Save uploaded image
-        with open(file_path, "wb") as f:
-            shutil.copyfileobj(receipt.file, f)
-        print(f"✅ Saved receipt image to {file_path}")
+    # Save uploaded image
+    file_path = os.path.join(UPLOAD_FOLDER, receipt.filename)
+    with open(file_path, "wb") as f:
+        shutil.copyfileobj(receipt.file, f)
 
-        return {
-            "message": "File uploaded successfully",
-            "file_path": file_path
-        }
-    except Exception as e:
-        print(f"❌ Error saving file: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+    # Step 1: Google OCR
+    receipt_text = extract_text_from_image(file_path)
 
-@app.get("/health")
-async def health_check():
-    return {"status": "ok"}
+    # Step 2: LLaMA parsing
+    parsed_receipt = parse_with_phi(receipt_text)
+
+    return {
+        "raw_text": receipt_text,
+        "parsed": parsed_receipt
+    }
