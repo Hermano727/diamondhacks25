@@ -96,6 +96,9 @@ export default function AssignItemsScreen() {
     return FRIEND_COLORS[index % FRIEND_COLORS.length];
   };
 
+  // Calculate total price of all items on the tab
+  const totalTab = items.reduce((acc, item) => acc + item.price, 0);
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.progressContainer}>
@@ -119,7 +122,10 @@ export default function AssignItemsScreen() {
 
       {step === 1 && (
         <>
-          <Text style={styles.titleCenter}>👥 Who's on the tab?</Text>
+          <View style={styles.titleContainer}>
+            <Ionicons name="people" size={32} color="#1A237E" />
+            <Text style={styles.titleText}>Who's on the Tab?</Text>
+          </View>
           <Text style={styles.text}>Add everyone you're splitting with:</Text>
           <TextInput
             value={newFriend}
@@ -152,7 +158,16 @@ export default function AssignItemsScreen() {
 
       {step === 2 && (
         <>
-          <Text style={styles.titleCenter}>🧾 What's on the Tab?</Text>
+          <View style={styles.titleContainer}>
+            <Ionicons name="receipt-outline" size={32} color="#1A237E" />
+            <Text style={styles.titleText}>What's on the Tab?</Text>
+          </View>
+          {/* Total Summary & Friend Count */}
+          <View style={styles.summaryContainer}>
+            <Text style={styles.summaryText}>
+              Total: ${totalTab.toFixed(2)} | Friends: {friends.length}
+            </Text>
+          </View>
           {items.map((item) => (
             <View key={item.name} style={styles.card}>
               <Text style={[styles.itemName, { textAlign: 'center' }]}>
@@ -182,14 +197,11 @@ export default function AssignItemsScreen() {
                   );
                 })}
               </View>
-
               <View style={{ marginTop: 8 }}>
                 {(() => {
                   const splitPeople = assignments[item.name] || [];
                   if (splitPeople.length === 0) return null;
-
                   let splitText = '';
-
                   if (splitPeople.length === 1) {
                     splitText = `${splitPeople[0]} bought this`;
                   } else if (splitPeople.length === friends.length) {
@@ -199,23 +211,10 @@ export default function AssignItemsScreen() {
                       splitPeople.slice(-1)
                     } are splitting`;
                   }
-
-                  return (
-                    <Text
-                      style={{
-                        color: '#ccc',
-                        fontSize: 14,
-                        textAlign: 'center',
-                        fontStyle: 'italic',
-                        marginTop: 4,
-                      }}
-                    >
-                      {splitText}
-                    </Text>
-                  );
+                  return <Text style={styles.splitText}>{splitText}</Text>;
                 })()}
               </View>
-            </View>
+          </View>
           ))}
           <TouchableOpacity onPress={handleNext} style={styles.button}>
             <Text style={styles.buttonText}>Next ➡️</Text>
@@ -225,13 +224,15 @@ export default function AssignItemsScreen() {
 
       {step === 3 && (
         <>
-          <Text style={styles.titleCenter}>💰 Split Up!</Text>
+          <View style={styles.titleContainer}>
+            <Ionicons name="cash-outline" size={32} color="#1A237E" />
+            <Text style={styles.titleText}>Split Up!</Text>
+          </View>
           <View style={styles.summaryCard}>
             <Text style={styles.summaryText}>
               Grand Total: <Text style={{ fontWeight: 'bold' }}>${grandTotal.toFixed(2)}</Text>
             </Text>
           </View>
-
           {friends.map((friend) => {
             const total = totals[friend].toFixed(2);
             return (
@@ -248,7 +249,6 @@ export default function AssignItemsScreen() {
                     ▼
                   </Text>
                 </TouchableOpacity>
-
                 {expandedFriends[friend] && (
                   <View style={{ marginTop: 10 }}>
                     <Text
@@ -307,12 +307,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 24,
   },
-  titleCenter: {
+  titleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  titleText: {
     fontSize: 28,
     fontWeight: 'bold',
     color: '#1A237E',
     textAlign: 'center',
-    marginBottom: 12,
   },
   text: {
     fontSize: 18,
@@ -343,6 +349,10 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     marginRight: 8,
     marginBottom: 8,
+  },
+  summaryContainer: {
+    alignItems: 'center',
+    marginBottom: 12,
   },
   button: {
     backgroundColor: '#1A237E',
@@ -387,6 +397,13 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: '#333',
     textAlign: 'center',
+  },
+  splitText: {
+    color: '#ccc',
+    fontSize: 14,
+    textAlign: 'center',
+    fontStyle: 'italic',
+    marginTop: 4,
   },
   payCard: {
     flexDirection: 'row',
