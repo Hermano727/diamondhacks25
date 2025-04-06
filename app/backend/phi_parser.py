@@ -5,7 +5,7 @@ import json
 from dotenv import load_dotenv
 load_dotenv()
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
-print("🔐 API KEY (preview):", OPENROUTER_API_KEY[:10], "..." if OPENROUTER_API_KEY else "❌ None found")
+
 
 def parse_with_phi(receipt_text):
     prompt = f"""
@@ -19,6 +19,8 @@ You are a receipt parser. Extract and return this data as JSON:
 Return only valid JSON.
 
 If there is a multiple line entry, be careful.
+
+If the receipt text groups names first and then prices, try your best to match them up.
 RECEIPT:
 \"\"\"
 {receipt_text}
@@ -31,7 +33,7 @@ RECEIPT:
             headers={
                 "Authorization": f"Bearer {OPENROUTER_API_KEY}",
                 "Content-Type": "application/json",
-                "HTTP-Referer": "http://localhost",  # (Optional) for OpenRouter usage policy
+                "HTTP-Referer": "http://localhost", 
                 "X-Title": "ReceiptParserApp"
             },
             json={
@@ -42,11 +44,7 @@ RECEIPT:
 
         data = response.json()
 
-        # ✅ Debug raw response if needed
-        # print("📦 Full response:", json.dumps(data, indent=2))
-
-        # Try both formats
-        print("🕵️ RAW OpenRouter Response:", json.dumps(data, indent=2))
+        
 
         if "choices" in data:
             return json.loads(data["choices"][0]["message"]["content"])
@@ -56,5 +54,5 @@ RECEIPT:
             raise ValueError("Unexpected response format")
 
     except Exception as e:
-        print("❌ Phi-3 error:", e)
+        print("Phi-3 error:", e)
         return {"error": "Failed to parse receipt"}
