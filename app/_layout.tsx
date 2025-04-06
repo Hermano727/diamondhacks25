@@ -27,10 +27,32 @@ export default function RootLayout() {
     return null;
   }
 
+  // Customize the themes
+  const customDarkTheme = {
+    ...DarkTheme,
+    colors: {
+      ...DarkTheme.colors,
+      background: '#F5F5F5', // change background color to light gray or desired color
+    },
+  };
+
+  const customDefaultTheme = {
+    ...DefaultTheme,
+    colors: {
+      ...DefaultTheme.colors,
+      background: '#F5F5F5', // change background color to light gray or desired color
+    },
+  };
+
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <ThemeProvider value={colorScheme === 'dark' ? customDarkTheme : customDefaultTheme}>
       <Stack>
+        {/* Hide header for tab-based screens */}
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+
+        {/* Hide header for assign-items */}
+        <Stack.Screen name="assign-items" options={{ headerShown: false }} />
+
         <Stack.Screen name="+not-found" />
       </Stack>
       <StatusBar style="auto" />
