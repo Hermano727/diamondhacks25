@@ -9,6 +9,7 @@ import {
   Alert,
   ActivityIndicator,
   Share,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
@@ -43,6 +44,10 @@ const ReceiptParserScreen = () => {
   const [parsedResult, setParsedResult] = useState<ReceiptResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [tipPercentage, setTipPercentage] = useState(20);
+  const [tipAmount, setTipAmount] = useState<number | null>(null);
+  const [taxPercentage, setTaxPercentage] = useState(8.25);
+  const [useCustomTip, setUseCustomTip] = useState(false);
 
   // Set the image from params when the screen loads
   useEffect(() => {
@@ -96,28 +101,39 @@ const ReceiptParserScreen = () => {
     formData.append('receipt', file as any);
 
     try {
-        const response = await axios.post(getLocalApiUrl('/upload-receipt'), formData, {
+      const response = await axios.post(getLocalApiUrl('/upload-receipt'), formData, {
         headers: { 
           'Content-Type': 'multipart/form-data',
           'Accept': 'application/json'
         },
-        timeout: 30000, // Increased timeout to 30 seconds
+        timeout: 30000,
       });
-      console.log('✅ Parsed:', response.data);
       
       // Ensure the data is properly formatted
       const parsedData = response.data.parsed || {} as ParsedReceipt;
       const items = (parsedData.items || []).map((item: ReceiptItem) => ({
         name: item.name || 'Unknown Item',
         price: typeof item.price === 'number' ? item.price : parseFloat(item.price) || 0,
-        quantity: typeof item.quantity === 'number' ? item.quantity : parseInt(item.quantity) || 1
+        quantity: typeof item.quantity === 'number' ? item.quantity : parseInt(item.quantity) || 1,
       }));
+
+      // If we have multiple items with the same name, combine them
+      const combinedItems = items.reduce((acc: ReceiptItem[], item) => {
+        const existingItem = acc.find(i => i.name === item.name);
+        if (existingItem) {
+          existingItem.quantity += item.quantity;
+          existingItem.price = (existingItem.price * existingItem.quantity + item.price * item.quantity) / (existingItem.quantity + item.quantity);
+        } else {
+          acc.push({...item});
+        }
+        return acc;
+      }, []);
 
       setParsedResult({
         ...response.data,
         parsed: {
           ...parsedData,
-          items,
+          items: combinedItems,
           subtotal: typeof parsedData.subtotal === 'number' ? parsedData.subtotal : parseFloat(parsedData.subtotal) || 0,
           tax: typeof parsedData.tax === 'number' ? parsedData.tax : parseFloat(parsedData.tax) || 0,
           tip: typeof parsedData.tip === 'number' ? parsedData.tip : parseFloat(parsedData.tip) || 0,
@@ -135,14 +151,25 @@ const ReceiptParserScreen = () => {
 
   const handleSplitBill = () => {
     if (parsedResult?.parsed?.items) {
+      const calculatedTip = useCustomTip ? (tipAmount || 0) : 
+        (parsedResult.parsed.subtotal * (tipPercentage / 100));
+      
       router.push({
         pathname: '/splitting/assign',
         params: {
           items: JSON.stringify(parsedResult.parsed.items),
           subtotal: parsedResult.parsed.subtotal,
-          tax: parsedResult.parsed.tax,
-          tip: parsedResult.parsed.tip,
-          total: parsedResult.parsed.total
+          taxPercentage: taxPercentage.toString(),
+          tipPercentage: tipPercentage.toString(),
+          useCustomTip: useCustomTip.toString(),
+          customTipAmount: tipAmount?.toString() || '0',
+          // Calculate total tax and tip for reference
+          totalTax: (parsedResult.parsed.subtotal * (taxPercentage / 100)).toString(),
+          totalTip: calculatedTip.toString(),
+          // Calculate total for reference
+          total: (parsedResult.parsed.subtotal + 
+                 (parsedResult.parsed.subtotal * (taxPercentage / 100)) + 
+                 calculatedTip).toString()
         },
       });
     }
@@ -255,23 +282,111 @@ const ReceiptParserScreen = () => {
                   <Text style={styles.totalLabel}>Subtotal:</Text>
                   <Text style={styles.totalAmount}>${parsedResult.parsed.subtotal.toFixed(2)}</Text>
                 </View>
-                {parsedResult.parsed.tax !== undefined && (
+
+                <View style={styles.taxSection}>
+                  <Text style={styles.taxLabel}>Tax Percentage:</Text>
+                  <View style={styles.taxInputContainer}>
+                    <TextInput
+                      style={styles.taxInput}
+                      value={taxPercentage.toString()}
+                      onChangeText={(text) => {
+                        const value = parseFloat(text);
+                        if (!isNaN(value) && value >= 0) {
+                          setTaxPercentage(value);
+                        }
+                      }}
+                      keyboardType="numeric"
+                      placeholder="0"
+                    />
+                    <Text style={styles.percentSymbol}>%</Text>
+                  </View>
                   <View style={styles.totalRow}>
                     <Text style={styles.totalLabel}>Tax:</Text>
-                    <Text style={styles.totalAmount}>${parsedResult.parsed.tax.toFixed(2)}</Text>
+                    <Text style={styles.totalAmount}>
+                      ${(parsedResult.parsed.subtotal * (taxPercentage / 100)).toFixed(2)}
+                    </Text>
                   </View>
-                )}
-                {parsedResult.parsed.tip !== undefined && parsedResult.parsed.tip > 0 && (
+                </View>
+
+                <View style={styles.tipSection}>
+                  <Text style={styles.tipLabel}>Tip:</Text>
+                  <View style={styles.tipOptions}>
+                    <View style={styles.tipToggle}>
+                      <TouchableOpacity
+                        style={[styles.tipToggleButton, !useCustomTip && styles.selectedToggleButton]}
+                        onPress={() => setUseCustomTip(false)}
+                      >
+                        <Text style={[styles.tipToggleText, !useCustomTip && styles.selectedToggleText]}>
+                          Percentage
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.tipToggleButton, useCustomTip && styles.selectedToggleButton]}
+                        onPress={() => setUseCustomTip(true)}
+                      >
+                        <Text style={[styles.tipToggleText, useCustomTip && styles.selectedToggleText]}>
+                          Custom Amount
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    {!useCustomTip ? (
+                      <View style={styles.tipButtons}>
+                        {[15, 18, 20, 22].map(percent => (
+                          <TouchableOpacity
+                            key={percent}
+                            style={[
+                              styles.tipButton,
+                              tipPercentage === percent && styles.selectedTipButton
+                            ]}
+                            onPress={() => setTipPercentage(percent)}
+                          >
+                            <Text style={[
+                              styles.tipButtonText,
+                              tipPercentage === percent && styles.selectedTipButtonText
+                            ]}>
+                              {percent}%
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    ) : (
+                      <View style={styles.tipInputContainer}>
+                        <Text style={styles.dollarSymbol}>$</Text>
+                        <TextInput
+                          style={styles.tipInput}
+                          value={tipAmount?.toString() || ''}
+                          onChangeText={(text) => {
+                            const value = parseFloat(text);
+                            if (!isNaN(value) && value >= 0) {
+                              setTipAmount(value);
+                            } else if (text === '') {
+                              setTipAmount(null);
+                            }
+                          }}
+                          keyboardType="numeric"
+                          placeholder="0.00"
+                        />
+                      </View>
+                    )}
+                  </View>
                   <View style={styles.totalRow}>
-                    <Text style={styles.totalLabel}>Tip:</Text>
-                    <Text style={styles.totalAmount}>${parsedResult.parsed.tip.toFixed(2)}</Text>
+                    <Text style={styles.totalLabel}>Tip Amount:</Text>
+                    <Text style={styles.totalAmount}>
+                      ${(useCustomTip ? (tipAmount || 0) : 
+                        (parsedResult.parsed.subtotal * (tipPercentage / 100))).toFixed(2)}
+                    </Text>
                   </View>
-                )}
+                </View>
+
                 {parsedResult.parsed.total !== undefined && (
                   <View style={[styles.totalRow, styles.grandTotal]}>
                     <Text style={[styles.totalLabel, styles.grandTotalLabel]}>Total:</Text>
                     <Text style={[styles.totalAmount, styles.grandTotalAmount]}>
-                      ${parsedResult.parsed.total.toFixed(2)}
+                      ${(parsedResult.parsed.subtotal + 
+                         (parsedResult.parsed.subtotal * (taxPercentage / 100)) + 
+                         (useCustomTip ? (tipAmount || 0) : 
+                          (parsedResult.parsed.subtotal * (tipPercentage / 100)))).toFixed(2)}
                     </Text>
                   </View>
                 )}
@@ -442,22 +557,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 12,
   },
-  shareButton: {
-    flex: 1,
-    backgroundColor: '#1a237e',
-    borderRadius: 16,
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-  },
   splitButtonText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#fff',
-  },
-  shareButtonText: {
     fontSize: 18,
     fontWeight: '600',
     color: '#fff',
@@ -503,10 +603,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
   },
-  cardSubtotal: {
-    fontSize: 14,
-    color: '#666',
-  },
   totalsSection: {
     marginBottom: 16,
   },
@@ -538,6 +634,125 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
     color: '#1a237e',
+  },
+  cardSubtotal: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 4,
+  },
+  tipSection: {
+    marginVertical: 16,
+  },
+  tipLabel: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 8,
+  },
+  tipOptions: {
+    marginBottom: 16,
+  },
+  tipToggle: {
+    flexDirection: 'row',
+    backgroundColor: '#f0f0f0',
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  tipToggleButton: {
+    flex: 1,
+    padding: 12,
+    alignItems: 'center',
+  },
+  selectedToggleButton: {
+    backgroundColor: '#1a237e',
+  },
+  tipToggleText: {
+    fontSize: 14,
+    color: '#666',
+  },
+  selectedToggleText: {
+    color: '#fff',
+  },
+  tipInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f0f0f0',
+    borderRadius: 8,
+    padding: 8,
+  },
+  dollarSymbol: {
+    fontSize: 16,
+    color: '#333',
+    marginRight: 4,
+  },
+  tipInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#333',
+    padding: 8,
+  },
+  tipButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  tipButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: '#f0f0f0',
+    minWidth: 60,
+    alignItems: 'center',
+  },
+  selectedTipButton: {
+    backgroundColor: '#1a237e',
+  },
+  tipButtonText: {
+    fontSize: 14,
+    color: '#333',
+  },
+  selectedTipButtonText: {
+    color: '#fff',
+  },
+  shareButton: {
+    backgroundColor: '#1a237e',
+    borderRadius: 16,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  shareButtonText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  taxSection: {
+    marginVertical: 16,
+  },
+  taxLabel: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 8,
+  },
+  taxInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f0f0f0',
+    borderRadius: 8,
+    padding: 8,
+    marginBottom: 8,
+  },
+  taxInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#333',
+    padding: 8,
+  },
+  percentSymbol: {
+    fontSize: 16,
+    color: '#666',
+    marginLeft: 4,
   },
 });
 

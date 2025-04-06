@@ -1,34 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
-  Image,
   StyleSheet,
   ScrollView,
-  Platform,
-  ActivityIndicator,
-  Alert,
   TextInput,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import * as ImagePicker from 'expo-image-picker';
-import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, router } from 'expo-router';
-import axios from 'axios';
-
-interface ParsedReceipt {
-  storeName: string;
-  date: string;
-  total: number;
-  items: Array<{
-    name: string;
-    price: number;
-    quantity: number;
-  }>;
-  tax: number;
-  subtotal: number;
-}
+import { Ionicons } from '@expo/vector-icons';
 
 interface ReceiptItem {
   name: string;
@@ -40,144 +22,60 @@ interface Person {
   id: string;
   name: string;
   items: ReceiptItem[];
+  subtotal: number;
+  tax: number;
+  tip: number;
   total: number;
 }
 
-const ReceiptParserScreen = () => {
-  const { items, subtotal, tax, tip, total } = useLocalSearchParams();
-  const [image, setImage] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [parsedData, setParsedData] = useState<ParsedReceipt | null>(null);
-  const [people, setPeople] = useState<Person[]>([]);
-  const [newPersonName, setNewPersonName] = useState('');
-  const [selectedPerson, setSelectedPerson] = useState<string | null>(null);
-  const [receiptItems, setReceiptItems] = useState<ReceiptItem[]>([]);
+const SplitBillScreen = () => {
+  const params = useLocalSearchParams();
+  const items = JSON.parse(params.items as string) as ReceiptItem[];
+  const subtotal = parseFloat(params.subtotal as string);
+  const taxPercentage = parseFloat(params.taxPercentage as string);
+  const tipPercentage = parseFloat(params.tipPercentage as string);
+  const useCustomTip = params.useCustomTip === 'true';
+  const customTipAmount = parseFloat(params.customTipAmount as string);
+  const totalTax = parseFloat(params.totalTax as string);
+  const totalTip = parseFloat(params.totalTip as string);
 
-  useEffect(() => {
-    if (items) {
-      try {
-        const parsedItems = JSON.parse(items as string);
-        console.log('Parsed items:', parsedItems);
-        
-        // Ensure all prices are numbers and quantities are integers
-        const formattedItems = parsedItems.map((item: any) => ({
-          name: item.name,
-          price: typeof item.price === 'number' ? item.price : parseFloat(item.price) || 0,
-          quantity: typeof item.quantity === 'number' ? item.quantity : parseInt(item.quantity) || 1
-        }));
-        
-        setReceiptItems(formattedItems);
-      } catch (err) {
-        console.error('Failed to parse items:', err);
-        Alert.alert('Error', 'Failed to load receipt items');
-      }
-    }
-  }, [items]);
-
-  const pickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 1,
-    });
-
-    if (!result.canceled) {
-      setImage(result.assets[0].uri);
-      setError(null);
-      setParsedData(null);
-    }
-  };
-
-  const takePhoto = async () => {
-    const result = await ImagePicker.launchCameraAsync({
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 1,
-    });
-
-    if (!result.canceled) {
-      setImage(result.assets[0].uri);
-      setError(null);
-      setParsedData(null);
-    }
-  };
-
-  const parseReceipt = async () => {
-    if (!image) return Alert.alert('No image selected!');
-
-    setLoading(true);
-    setError(null);
-    setParsedData(null);
-
-    try {
-      const formData = new FormData();
-
-      const fileName = image.split('/').pop() || 'receipt.jpg';
-      const fileType = 'image/jpeg';
-
-      const file = {
-        uri: image,
-        name: fileName,
-        type: fileType,
-      };
-
-      formData.append('receipt', file as any);
-
-      const response = await axios.post('http://100.112.72.217:8000/upload-receipt', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          Accept: 'application/json',
-        },
-      });
-
-      if (response.data && response.data.parsed) {
-        const transformedData = {
-          storeName: 'Store Name',
-          date: new Date().toLocaleDateString(),
-          items: response.data.parsed.items.map((item: any) => ({
-            name: item.name,
-            price: parseFloat(item.price),
-            quantity: 1,
-          })),
-          subtotal: parseFloat(response.data.parsed.subtotal || '0'),
-          tax: parseFloat(response.data.parsed.tax || '0'),
-          total: parseFloat(response.data.parsed.total || '0'),
-        };
-
-        setParsedData(transformedData);
-      } else {
-        setError('Failed to parse receipt data');
-      }
-    } catch (err: any) {
-      console.error('❌ Parse error:', err.message);
-      setError(err.message || 'Failed to parse receipt. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [people, setPeople] = useState<Person[]>([
+    { id: '1', name: '', items: [], subtotal: 0, tax: 0, tip: 0, total: 0 }
+  ]);
 
   const addPerson = () => {
-    if (!newPersonName.trim()) return;
-    
     const newPerson: Person = {
       id: Date.now().toString(),
-      name: newPersonName.trim(),
+      name: '',
       items: [],
+      subtotal: 0,
+      tax: 0,
+      tip: 0,
       total: 0,
     };
-    
     setPeople([...people, newPerson]);
-    setNewPersonName('');
+  };
+
+  const updatePersonName = (id: string, name: string) => {
+    setPeople(people.map(person => 
+      person.id === id ? { ...person, name } : person
+    ));
   };
 
   const assignItem = (item: ReceiptItem, personId: string) => {
     setPeople(people.map(person => {
       if (person.id === personId) {
         const updatedItems = [...person.items, item];
-        const newTotal = updatedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        return { ...person, items: updatedItems, total: newTotal };
+        const newSubtotal = updatedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        const proportion = newSubtotal / subtotal;
+        return {
+          ...person,
+          items: updatedItems,
+          subtotal: newSubtotal,
+          tax: totalTax * proportion,
+          tip: totalTip * proportion,
+          total: newSubtotal + (totalTax * proportion) + (totalTip * proportion)
+        };
       }
       return person;
     }));
@@ -189,20 +87,39 @@ const ReceiptParserScreen = () => {
         const updatedItems = person.items.filter(i => 
           i.name !== item.name || i.price !== item.price
         );
-        const newTotal = updatedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        return { ...person, items: updatedItems, total: newTotal };
+        const newSubtotal = updatedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        const proportion = newSubtotal / subtotal;
+        return {
+          ...person,
+          items: updatedItems,
+          subtotal: newSubtotal,
+          tax: totalTax * proportion,
+          tip: totalTip * proportion,
+          total: newSubtotal + (totalTax * proportion) + (totalTip * proportion)
+        };
       }
       return person;
     }));
   };
 
   const handlePreview = () => {
+    // Check if all items are assigned
+    const assignedItems = people.reduce((sum, p) => sum + p.items.length, 0);
+    if (assignedItems !== items.length) {
+      Alert.alert("Please assign all items before previewing");
+      return;
+    }
+    // Check if all people have names
+    const unnamedPeople = people.filter(p => !p.name.trim());
+    if (unnamedPeople.length > 0) {
+      Alert.alert("Please enter names for all people");
+      return;
+    }
     router.push({
       pathname: '/splitting/preview',
       params: {
-        people: JSON.stringify(people),
-        total: total,
-      },
+        people: JSON.stringify(people)
+      }
     });
   };
 
@@ -212,27 +129,17 @@ const ReceiptParserScreen = () => {
         <View style={styles.content}>
           <Text style={styles.title}>Split Bill</Text>
           
-          {/* Add People Section */}
-          <View style={styles.addPersonSection}>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter person's name"
-              value={newPersonName}
-              onChangeText={setNewPersonName}
-              onSubmitEditing={addPerson}
-            />
-            <TouchableOpacity style={styles.addButton} onPress={addPerson}>
-              <Ionicons name="person-add" size={24} color="#fff" />
-              <Text style={styles.addButtonText}>Add Person</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* People List */}
+          {/* People Section */}
           <View style={styles.peopleSection}>
             {people.map(person => (
               <View key={person.id} style={styles.personCard}>
                 <View style={styles.personHeader}>
-                  <Text style={styles.personName}>{person.name}</Text>
+                  <TextInput
+                    style={styles.personNameInput}
+                    placeholder="Enter name"
+                    value={person.name}
+                    onChangeText={(text) => updatePersonName(person.id, text)}
+                  />
                   <Text style={styles.personTotal}>${person.total.toFixed(2)}</Text>
                 </View>
                 
@@ -243,7 +150,7 @@ const ReceiptParserScreen = () => {
                         {item.quantity > 1 ? `${item.quantity}x ` : ''}{item.name}
                       </Text>
                       <Text style={styles.itemPrice}>${(item.price * item.quantity).toFixed(2)}</Text>
-                      <TouchableOpacity 
+                      <TouchableOpacity
                         style={styles.removeButton}
                         onPress={() => removeItem(item, person.id)}
                       >
@@ -254,12 +161,16 @@ const ReceiptParserScreen = () => {
                 </View>
               </View>
             ))}
+            <TouchableOpacity style={styles.addButton} onPress={addPerson}>
+              <Ionicons name="person-add" size={24} color="#fff" />
+              <Text style={styles.addButtonText}>Add Person</Text>
+            </TouchableOpacity>
           </View>
 
           {/* Available Items */}
           <View style={styles.itemsSection}>
             <Text style={styles.sectionTitle}>Available Items</Text>
-            {receiptItems.map((item, index) => (
+            {items.map((item, index) => (
               <View key={index} style={styles.itemCard}>
                 <View style={styles.itemInfo}>
                   <Text style={styles.itemName}>
@@ -277,7 +188,7 @@ const ReceiptParserScreen = () => {
                       ]}
                       onPress={() => assignItem(item, person.id)}
                     >
-                      <Text style={styles.assignButtonText}>{person.name[0]}</Text>
+                      <Text style={styles.assignButtonText}>{person.name ? person.name[0] : '?'}</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -315,30 +226,6 @@ const styles = StyleSheet.create({
     color: '#1a237e',
     marginBottom: 24,
   },
-  addPersonSection: {
-    marginBottom: 24,
-  },
-  input: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    fontSize: 16,
-  },
-  addButton: {
-    backgroundColor: '#4CAF50',
-    borderRadius: 12,
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-  },
-  addButtonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '600',
-  },
   peopleSection: {
     marginBottom: 24,
   },
@@ -359,10 +246,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
-  personName: {
+  personNameInput: {
     fontSize: 18,
     fontWeight: '600',
     color: '#1a237e',
+    flex: 1,
+    marginRight: 12,
   },
   personTotal: {
     fontSize: 18,
@@ -439,6 +328,20 @@ const styles = StyleSheet.create({
   removeButton: {
     padding: 4,
   },
+  addButton: {
+    backgroundColor: '#4CAF50',
+    borderRadius: 12,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  addButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '600',
+  },
   previewButton: {
     backgroundColor: '#1a237e',
     borderRadius: 12,
@@ -456,4 +359,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ReceiptParserScreen;
+export default SplitBillScreen;
