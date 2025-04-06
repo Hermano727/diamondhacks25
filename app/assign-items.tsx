@@ -209,36 +209,39 @@ export default function AssignItemsScreen() {
               </View>
 
               <View style={{ marginTop: 8 }}>
-                {(() => {
-                  const splitPeople = assignments[item.name] || [];
-                  if (splitPeople.length === 0) return null;
+  {(() => {
+    const splitPeople = assignments[item.name] || [];
+    if (splitPeople.length === 0) return null;
 
-                  let splitText = '';
-                  if (splitPeople.length === friends.length) {
-                    splitText = 'Everyone is splitting';
-                  } else if (splitPeople.length === 1) {
-                    splitText = `${splitPeople[0]} bought this`;
-                  } else {
-                    splitText = `${splitPeople.slice(0, -1).join(', ')} and ${
-                      splitPeople.slice(-1)
-                    } are splitting`;
-                  }
+    let splitText = '';
 
-                  return (
-                    <Text
-                      style={{
-                        color: '#ccc',
-                        fontSize: 14,
-                        textAlign: 'center',
-                        fontStyle: 'italic',
-                        marginTop: 4,
-                      }}
-                    >
-                      {splitText}
-                    </Text>
-                  );
-                })()}
-              </View>
+    // Check for the case where there is only one person
+    if (splitPeople.length === 1) {
+      splitText = `${splitPeople[0]} bought this`; // Only one person is assigned the item
+    } else if (splitPeople.length === friends.length) {
+      splitText = 'Everyone is splitting'; // All friends are splitting the item
+    } else {
+      splitText = `${splitPeople.slice(0, -1).join(', ')} and ${
+        splitPeople.slice(-1)
+      } are splitting`; // Some friends are splitting the item
+    }
+
+    return (
+      <Text
+        style={{
+          color: '#ccc',
+          fontSize: 14,
+          textAlign: 'center',
+          fontStyle: 'italic',
+          marginTop: 4,
+        }}
+      >
+        {splitText}
+      </Text>
+    );
+  })()}
+          </View>
+
             </View>
           ))}
           <TouchableOpacity onPress={handleNext} style={styles.button}>
