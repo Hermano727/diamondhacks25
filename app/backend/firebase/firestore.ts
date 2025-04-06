@@ -1,6 +1,5 @@
-import { db } from './config';
-import type { Receipt, FoodComponent, Bill, UserProfile } from '../types/firestore';
-import { collection, doc, getDoc, setDoc, updateDoc, getDocs, addDoc, query, orderBy } from 'firebase/firestore';
+import { firebase } from './firebaseConfig';
+import type { Receipt, FoodComponent, Bill, UserProfile } from '../../types/firestore';
 
 // User Profile Functions
 export const createUserProfile = async (uid: string, phoneNumber: string) => {
@@ -16,8 +15,7 @@ export const createUserProfile = async (uid: string, phoneNumber: string) => {
         totalBills: 0,
       },
     };
-
-    await setDoc(doc(db, 'users', uid), userProfile);
+    await firebase.firestore().collection('users').doc(uid).set(userProfile);
     console.log('User profile created successfully');
     return userProfile;
   } catch (error) {
@@ -29,10 +27,10 @@ export const createUserProfile = async (uid: string, phoneNumber: string) => {
 export const getUserProfile = async (uid: string): Promise<UserProfile | null> => {
   try {
     console.log('Fetching user profile for UID:', uid);
-    const docRef = doc(db, 'users', uid);
-    const docSnap = await getDoc(docRef);
-    console.log('User profile document exists:', docSnap.exists());
-    return docSnap.exists() ? (docSnap.data() as UserProfile) : null;
+    const docRef = firebase.firestore().collection('users').doc(uid);
+    const docSnap = await docRef.get();
+    console.log('User profile document exists:', docSnap.exists);
+    return docSnap.exists ? (docSnap.data() as UserProfile) : null;
   } catch (error) {
     console.error('Error fetching user profile:', error);
     throw error;
@@ -40,11 +38,11 @@ export const getUserProfile = async (uid: string): Promise<UserProfile | null> =
 };
 
 export const updateUserStats = async (uid: string) => {
-  const receiptsSnapshot = await getDocs(collection(db, 'users', uid, 'receipts'));
-  const foodSnapshot = await getDocs(collection(db, 'users', uid, 'food'));
-  const billsSnapshot = await getDocs(collection(db, 'users', uid, 'bills'));
+  const receiptsSnapshot = await firebase.firestore().collection('users').doc(uid).collection('receipts').get();
+  const foodSnapshot = await firebase.firestore().collection('users').doc(uid).collection('food').get();
+  const billsSnapshot = await firebase.firestore().collection('users').doc(uid).collection('bills').get();
 
-  await updateDoc(doc(db, 'users', uid), {
+  await firebase.firestore().collection('users').doc(uid).update({
     'stats.totalReceipts': receiptsSnapshot.size,
     'stats.totalFoodComponents': foodSnapshot.size,
     'stats.totalBills': billsSnapshot.size,
@@ -54,11 +52,12 @@ export const updateUserStats = async (uid: string) => {
 
 // Receipts Functions
 export const getUserReceipts = async (uid: string): Promise<Receipt[]> => {
-  const q = query(
-    collection(db, 'users', uid, 'receipts'),
-    orderBy('createdAt', 'desc')
-  );
-  const snapshot = await getDocs(q);
+  const snapshot = await firebase.firestore()
+    .collection('users')
+    .doc(uid)
+    .collection('receipts')
+    .orderBy('createdAt', 'desc')
+    .get();
 
   return snapshot.docs.map(doc => ({
     id: doc.id,
@@ -69,10 +68,14 @@ export const getUserReceipts = async (uid: string): Promise<Receipt[]> => {
 };
 
 export const addReceipt = async (uid: string, receipt: Omit<Receipt, 'id' | 'createdAt'>) => {
-  const docRef = await addDoc(collection(db, 'users', uid, 'receipts'), {
-    ...receipt,
-    createdAt: new Date(),
-  });
+  const docRef = await firebase.firestore()
+    .collection('users')
+    .doc(uid)
+    .collection('receipts')
+    .add({
+      ...receipt,
+      createdAt: new Date(),
+    });
 
   await updateUserStats(uid);
   return docRef.id;
@@ -80,11 +83,12 @@ export const addReceipt = async (uid: string, receipt: Omit<Receipt, 'id' | 'cre
 
 // Food Components Functions
 export const getUserFood = async (uid: string): Promise<FoodComponent[]> => {
-  const q = query(
-    collection(db, 'users', uid, 'food'),
-    orderBy('createdAt', 'desc')
-  );
-  const snapshot = await getDocs(q);
+  const snapshot = await firebase.firestore()
+    .collection('users')
+    .doc(uid)
+    .collection('food')
+    .orderBy('createdAt', 'desc')
+    .get();
 
   return snapshot.docs.map(doc => ({
     id: doc.id,
@@ -94,10 +98,14 @@ export const getUserFood = async (uid: string): Promise<FoodComponent[]> => {
 };
 
 export const addFoodComponent = async (uid: string, food: Omit<FoodComponent, 'id' | 'createdAt'>) => {
-  const docRef = await addDoc(collection(db, 'users', uid, 'food'), {
-    ...food,
-    createdAt: new Date(),
-  });
+  const docRef = await firebase.firestore()
+    .collection('users')
+    .doc(uid)
+    .collection('food')
+    .add({
+      ...food,
+      createdAt: new Date(),
+    });
 
   await updateUserStats(uid);
   return docRef.id;
@@ -105,11 +113,12 @@ export const addFoodComponent = async (uid: string, food: Omit<FoodComponent, 'i
 
 // Bills Functions
 export const getUserBills = async (uid: string): Promise<Bill[]> => {
-  const q = query(
-    collection(db, 'users', uid, 'bills'),
-    orderBy('createdAt', 'desc')
-  );
-  const snapshot = await getDocs(q);
+  const snapshot = await firebase.firestore()
+    .collection('users')
+    .doc(uid)
+    .collection('bills')
+    .orderBy('createdAt', 'desc')
+    .get();
 
   return snapshot.docs.map(doc => ({
     id: doc.id,
@@ -120,10 +129,14 @@ export const getUserBills = async (uid: string): Promise<Bill[]> => {
 };
 
 export const addBill = async (uid: string, bill: Omit<Bill, 'id' | 'createdAt'>) => {
-  const docRef = await addDoc(collection(db, 'users', uid, 'bills'), {
-    ...bill,
-    createdAt: new Date(),
-  });
+  const docRef = await firebase.firestore()
+    .collection('users')
+    .doc(uid)
+    .collection('bills')
+    .add({
+      ...bill,
+      createdAt: new Date(),
+    });
 
   await updateUserStats(uid);
   return docRef.id;

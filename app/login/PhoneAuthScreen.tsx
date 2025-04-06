@@ -104,7 +104,7 @@ export default function PhoneAuthScreen() {
 
       setLoading(true);
       const credential = firebase.auth.PhoneAuthProvider.credential(verificationId, verificationCode);
-      const userCredential = await auth.signInWithCredential(credential);
+      const userCredential = await firebase.auth().signInWithCredential(credential);
       
       // Store the authenticated user
       const user = userCredential.user;

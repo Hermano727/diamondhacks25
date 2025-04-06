@@ -7,8 +7,7 @@ import {
   Animated,
 } from 'react-native';
 import { router } from 'expo-router';
-import { initializeApp } from 'firebase/app';
-import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import { auth } from './backend/firebase/firebaseConfig';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 // Initialize Firebase
@@ -21,16 +20,13 @@ const firebaseConfig = {
   appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
 };
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-
 export default function SplashScreen() {
   const [fadeAnim] = useState(new Animated.Value(0));
   const [scaleAnim] = useState(new Animated.Value(0.8));
 
   useEffect(() => {
     // Check if user is already logged in
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
       if (user) {
         router.replace('/(tabs)');
       }
