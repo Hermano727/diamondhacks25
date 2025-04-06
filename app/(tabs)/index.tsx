@@ -84,7 +84,6 @@ const ReceiptParserScreen = () => {
           <View style={styles.featuresContainer}>
             <Text style={styles.featuresTitle}>Features</Text>
             <View style={styles.featuresList}>
-
               <View style={styles.featureCard}>
                 <View style={styles.featureIcon}>
                   <Ionicons name="flash-outline" size={24} color="#1a237e" />
@@ -103,12 +102,20 @@ const ReceiptParserScreen = () => {
             </View>
           </View>
 
-          {parsedResult && (
-            <View style={styles.result}>
-              <Text style={styles.resultTitle}>Parsed Result:</Text>
-              <Text style={styles.resultText}>
-                {JSON.stringify(parsedResult, null, 2)}
-              </Text>
+          {parsedResult?.parsed?.items?.length > 0 && (
+            <View style={{ marginTop: 32 }}>
+              <Text style={styles.resultTitle}>Items:</Text>
+              {parsedResult.parsed.items.map((item: any, index: number) => (
+                <View key={index} style={styles.card}>
+                  <Text style={styles.cardTitle}>{item.name}</Text>
+                  <Text style={styles.cardDetail}>
+                    Price: ${parseFloat(item.price).toFixed(2)}
+                  </Text>
+                  {item.quantity && (
+                    <Text style={styles.cardDetail}>Qty: {item.quantity}</Text>
+                  )}
+                </View>
+              ))}
             </View>
           )}
         </View>
@@ -166,14 +173,33 @@ const styles = StyleSheet.create({
   },
   featureTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 4 },
   featureDescription: { fontSize: 14, color: '#666' },
-  result: {
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 10,
-    marginTop: 20,
+  resultTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#1a237e',
+    marginBottom: 12,
   },
-  resultTitle: { fontSize: 16, fontWeight: '600', marginBottom: 8 },
-  resultText: { fontFamily: 'Courier', fontSize: 14 },
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 4,
+  },
+  cardDetail: {
+    fontSize: 14,
+    color: '#666',
+  },
 });
 
 export default ReceiptParserScreen;
