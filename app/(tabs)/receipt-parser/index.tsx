@@ -310,27 +310,6 @@ const ReceiptParserScreen = () => {
                   <Text style={styles.totalAmount}>${parsedResult.parsed.subtotal.toFixed(2)}</Text>
                 </View>
 
-                {/* Tax Input */}
-                <View style={styles.taxSection}>
-                  <Text style={styles.sectionTitle}>Tax Percentage</Text>
-                  <View style={styles.taxSliderContainer}>
-                    <Slider
-                      style={styles.taxSlider}
-                      minimumValue={0}
-                      maximumValue={15}
-                      step={0.05}
-                      value={taxPercentage}
-                      onValueChange={setTaxPercentage}
-                      minimumTrackTintColor="#1a237e"
-                      maximumTrackTintColor="#e8eaf6"
-                      thumbTintColor="#1a237e"
-                    />
-                    <View style={styles.taxValueContainer}>
-                      <Text style={styles.taxValue}>{taxPercentage.toFixed(2)}%</Text>
-                    </View>
-                  </View>
-                </View>
-
                 <View style={styles.tipSection}>
                   <Text style={styles.sectionTitle}>Tip</Text>
                   <View style={styles.tipOptions}>
@@ -399,16 +378,16 @@ const ReceiptParserScreen = () => {
                 </View>
 
                 {parsedResult.parsed.total !== undefined && (
-                  <View style={[styles.totalRow, styles.grandTotal]}>
+                <View style={[styles.totalRow, styles.grandTotal]}>
                     <Text style={[styles.totalLabel, styles.grandTotalLabel]}>Total:</Text>
                     <Text style={[styles.totalAmount, styles.grandTotalAmount]}>
-                      ${(parsedResult.parsed.subtotal + 
-                         (parsedResult.parsed.subtotal * (taxPercentage / 100)) + 
-                         (useCustomTip ? (tipAmount || 0) : 
-                          (parsedResult.parsed.subtotal * (tipPercentage / 100)))).toFixed(2)}
+                    ${(parsedResult.parsed.subtotal +
+                        parsedResult.parsed.tax +
+                        (useCustomTip ? (tipAmount || 0) : parsedResult.parsed.tip)).toFixed(2)}
                     </Text>
-                  </View>
+                </View>
                 )}
+
               </View>
 
               <View style={styles.actionButtons}>

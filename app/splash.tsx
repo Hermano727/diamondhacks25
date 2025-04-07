@@ -67,11 +67,10 @@ export default function SplashScreen() {
           ]}
         >
           <View style={styles.logoContainer}>
-            <Text style={styles.logoText}>Expense</Text>
-            <Text style={styles.logoText}>Tracker</Text>
+            <Text style={styles.logoText}>Splitr</Text>
           </View>
-          <Text style={styles.title}>Welcome to Your App</Text>
-          <Text style={styles.subtitle}>Track your expenses and manage your bills</Text>
+          <Text style={styles.title}>Bill Splitting Made Simple</Text>
+          <Text style={styles.subtitle}>Scan receipts and share costs</Text>
           
           <TouchableOpacity
             style={styles.button}
