@@ -255,26 +255,85 @@ const ReceiptParserScreen = () => {
                   <Text style={styles.totalLabel}>Subtotal:</Text>
                   <Text style={styles.totalAmount}>${parsedResult.parsed.subtotal.toFixed(2)}</Text>
                 </View>
-                {parsedResult.parsed.tax !== undefined && (
-                  <View style={styles.totalRow}>
-                    <Text style={styles.totalLabel}>Tax:</Text>
-                    <Text style={styles.totalAmount}>${parsedResult.parsed.tax.toFixed(2)}</Text>
+
+                <View style={styles.tipSection}>
+                  <Text style={styles.sectionTitle}>Tip</Text>
+                  <View style={styles.tipOptions}>
+                    <TouchableOpacity
+                      style={[styles.tipButton, !useCustomTip && tipPercentage === 15 && styles.selectedTipButton]}
+                      onPress={() => {
+                        setUseCustomTip(false);
+                        setTipPercentage(15);
+                      }}
+                    >
+                      <Text style={[styles.tipButtonText, !useCustomTip && tipPercentage === 15 && styles.selectedTipButtonText]}>15%</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.tipButton, !useCustomTip && tipPercentage === 18 && styles.selectedTipButton]}
+                      onPress={() => {
+                        setUseCustomTip(false);
+                        setTipPercentage(18);
+                      }}
+                    >
+                      <Text style={[styles.tipButtonText, !useCustomTip && tipPercentage === 18 && styles.selectedTipButtonText]}>18%</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.tipButton, !useCustomTip && tipPercentage === 20 && styles.selectedTipButton]}
+                      onPress={() => {
+                        setUseCustomTip(false);
+                        setTipPercentage(20);
+                      }}
+                    >
+                      <Text style={[styles.tipButtonText, !useCustomTip && tipPercentage === 20 && styles.selectedTipButtonText]}>20%</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.tipButton, !useCustomTip && tipPercentage === 22 && styles.selectedTipButton]}
+                      onPress={() => {
+                        setUseCustomTip(false);
+                        setTipPercentage(22);
+                      }}
+                    >
+                      <Text style={[styles.tipButtonText, !useCustomTip && tipPercentage === 22 && styles.selectedTipButtonText]}>22%</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.tipButton, useCustomTip && styles.selectedTipButton]}
+                      onPress={() => setUseCustomTip(true)}
+                    >
+                      <Text style={[styles.tipButtonText, useCustomTip && styles.selectedTipButtonText]}>Custom</Text>
+                    </TouchableOpacity>
                   </View>
-                )}
-                {parsedResult.parsed.tip !== undefined && parsedResult.parsed.tip > 0 && (
-                  <View style={styles.totalRow}>
-                    <Text style={styles.totalLabel}>Tip:</Text>
-                    <Text style={styles.totalAmount}>${parsedResult.parsed.tip.toFixed(2)}</Text>
-                  </View>
-                )}
+                  {useCustomTip && (
+                    <View style={styles.customTipContainer}>
+                      <TextInput
+                        style={styles.customTipInput}
+                        placeholder="Enter custom tip amount"
+                        keyboardType="decimal-pad"
+                        value={tipAmount?.toString() || ''}
+                        onChangeText={(text) => {
+                          const value = parseFloat(text);
+                          if (!isNaN(value) && value >= 0) {
+                            setTipAmount(value);
+                          } else if (text === '') {
+                            setTipAmount(undefined);
+                          }
+                        }}
+                      />
+                      <Text style={styles.currencySymbol}>$</Text>
+                    </View>
+                  )}
+                </View>
+
                 {parsedResult.parsed.total !== undefined && (
-                  <View style={[styles.totalRow, styles.grandTotal]}>
+                <View style={[styles.totalRow, styles.grandTotal]}>
                     <Text style={[styles.totalLabel, styles.grandTotalLabel]}>Total:</Text>
                     <Text style={[styles.totalAmount, styles.grandTotalAmount]}>
-                      ${parsedResult.parsed.total.toFixed(2)}
+                    ${(parsedResult.parsed.subtotal +
+                        parsedResult.parsed.tax +
+                        (useCustomTip ? (tipAmount || 0) : parsedResult.parsed.tip)).toFixed(2)}
                     </Text>
-                  </View>
+                </View>
                 )}
+
               </View>
 
               <View style={styles.actionButtons}>

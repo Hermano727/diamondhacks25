@@ -69,8 +69,8 @@ export default function SplashScreen() {
           <View style={styles.logoContainer}>
             <Text style={styles.logoText}>Splitr</Text>
           </View>
-          <Text style={styles.title}>Welcome to Splitr</Text>
-          <Text style={styles.subtitle}>Split bills with friends, the easy way</Text>
+          <Text style={styles.title}>Bill Splitting Made Simple</Text>
+          <Text style={styles.subtitle}>Scan receipts and share costs</Text>
           
           <TouchableOpacity
             style={styles.button}
