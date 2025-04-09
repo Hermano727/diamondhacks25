@@ -26,23 +26,29 @@ interface Person {
 }
 
 const PreviewSplitScreen = () => {
-  const { people: peopleStr, total: totalStr } = useLocalSearchParams();
+  const { people: peopleStr, total: totalStr, tax: taxStr, tip: tipStr } = useLocalSearchParams();
   const [people, setPeople] = useState<Person[]>([]);
   const [total, setTotal] = useState<number>(0);
+  const [tax, setTax] = useState<number>(0);
+  const [tip, setTip] = useState<number>(0);
 
   useEffect(() => {
-    if (peopleStr && totalStr) {
+    if (peopleStr && totalStr && taxStr && tipStr) {
       try {
         const parsedPeople = JSON.parse(peopleStr as string);
         const parsedTotal = parseFloat(totalStr as string);
+        const parsedTax = parseFloat(taxStr as string);
+        const parsedTip = parseFloat(tipStr as string);
         setPeople(parsedPeople);
         setTotal(parsedTotal);
+        setTax(parsedTax);
+        setTip(parsedTip);
       } catch (err) {
         console.error('Failed to parse data:', err);
         Alert.alert('Error', 'Failed to load split data');
       }
     }
-  }, [peopleStr, totalStr]);
+  }, [peopleStr, totalStr, taxStr, tipStr]);
 
   const handleShare = async () => {
     try {

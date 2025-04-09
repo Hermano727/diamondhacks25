@@ -156,12 +156,15 @@ const SplitBillScreen = () => {
       Alert.alert("Please enter names for all people");
       return;
     }
+    const total = subtotal + totalTax + totalTip;
     router.push({
       pathname: '/splitting/preview',
       params: {
         people: JSON.stringify(people),
-        total: (subtotal + totalTax + totalTip).toString()
-      }
+        total: total.toString(),
+        tax: totalTax.toString(),
+        tip: totalTip.toString()
+      },
     });
   };
 
